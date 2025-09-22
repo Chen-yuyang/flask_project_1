@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - 物品管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title text-center mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <!-- 父空间信息 -->
+                {% if parent %}
+                <div class="alert alert-info mb-4">
+                    父空间：<a href="{{ url_for('spaces.view', id=parent.id) }}">{{ parent.get_path() }}</a>
+                </div>
+                {% endif %}
+
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <!-- 空间名称 -->
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="请输入空间名称（如：餐厅、卧室）") }}
+                        {% for error in form.name.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary flex-grow-1") }}
+                        <a href="{{ url_for('spaces.index') if not parent and not space else url_for('spaces.view', id=parent.id if parent else space.parent_id) }}" class="btn btn-secondary flex-grow-1">取消</a>
+
+                        <!-- 删除按钮（仅编辑时显示） -->
+                        {% if space and current_user.is_admin() %}
+                        <button type="button" class="btn btn-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteModal">删除</button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 空间删除模态框（仅编辑时显示） -->
+{% if space and current_user.is_admin() %}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">确认删除空间</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除空间 <strong>"{{ space.name }}"</strong> 吗？</p>
+                {% if space.children.count() > 0 %}
+                <div class="alert alert-warning mt-2">
+                    ❗ 该空间包含 {{ space.children.count() }} 个子空间，需先删除所有子空间才能删除此空间。
+                </div>
+                {% elif space.items.count() > 0 %}
+                <div class="alert alert-warning mt-2">
+                    ❗ 该空间包含 {{ space.items.count() }} 个物品，需先移除所有物品才能删除此空间。
+                </div>
+                {% else %}
+                <div class="alert alert-danger mt-2">
+                    ⚠️ 此操作不可恢复，删除后空间将永久消失。
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form action="{{ url_for('spaces.delete', id=space.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger" {% if space.children.count() > 0 or space.items.count() > 0 %}disabled{% endif %}>
+                        确认删除
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

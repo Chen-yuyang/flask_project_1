@@ -19,7 +19,7 @@ class RegistrationForm(FlaskForm):
         DataRequired(), Email()
     ])
     password = PasswordField('密码', validators=[
-        DataRequired(), Length(min=8)
+        DataRequired(), Length(min=3)
     ])
     password2 = PasswordField('确认密码', validators=[
         DataRequired(), EqualTo('password')

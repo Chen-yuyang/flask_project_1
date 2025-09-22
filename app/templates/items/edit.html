@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - 物品管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title text-center mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <!-- 所属空间信息（创建时显示父空间，编辑时显示当前空间） -->
+                {% if space or (item and item.space) %}
+                <div class="alert alert-info mb-4">
+                    所属空间：
+                    <a href="{{ url_for('spaces.view', id=space.id) if space else url_for('spaces.view', id=item.space.id) }}">
+                        {{ space.get_path() if space else item.space.get_path() }}
+                    </a>
+                </div>
+                {% endif %}
+
+                <form method="POST">
+                    {{ form.hidden_tag() }}  <!-- CSRF保护 -->
+
+                    <!-- 物品名称 -->
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(
+                            class="form-control" + (" is-invalid" if form.name.errors else ""),
+                            placeholder="请输入物品名称（如：投影仪、笔记本电脑）"
+                        ) }}
+                        {% for error in form.name.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- 物品编号 -->
+                    <div class="mb-3">
+                        {{ form.serial_number.label(class="form-label") }}
+                        {{ form.serial_number(
+                            class="form-control" + (" is-invalid" if form.serial_number.errors else ""),
+                            placeholder="请输入唯一编号（如：IT-2025-001）"
+                        ) }}
+                        {% for error in form.serial_number.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">编号需唯一，用于物品标识和搜索</div>
+                    </div>
+
+                    <!-- 功能描述 -->
+                    <div class="mb-3">
+                        {{ form.function.label(class="form-label") }}
+                        {{ form.function(
+                            class="form-control" + (" is-invalid" if form.function.errors else ""),
+                            rows=4,
+                            placeholder="请描述物品功能（如：高清投影、移动办公），可选填"
+                        ) }}
+                        {% for error in form.function.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- 物品状态（仅编辑时显示，创建时默认"可用"） -->
+                    {% if item %}
+                    <div class="mb-3">
+                        {{ form.status.label(class="form-label") }}
+                        {{ form.status(
+                            class="form-select" + (" is-invalid" if form.status.errors else "")
+                        ) }}
+                        {% for error in form.status.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- 所属空间（创建/编辑均需选择，编辑时默认当前空间） -->
+                    <div class="mb-3">
+                        {{ form.space_id.label(class="form-label") }}
+                        {{ form.space_id(
+                            class="form-select" + (" is-invalid" if form.space_id.errors else "")
+                        ) }}
+                        {% for error in form.space_id.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">选择物品存放的具体空间，支持多级空间</div>
+                    </div>
+
+                    <!-- 操作按钮组 -->
+                    <div class="d-flex gap-2 align-items-center">
+                        {{ form.submit(class="btn btn-primary flex-grow-1") }}
+                        <a href="{{
+                            url_for('spaces.view', id=space.id) if space
+                            else url_for('items.view', id=item.id) if item
+                            else url_for('items.all_items')
+                        }}" class="btn btn-secondary flex-grow-1">取消</a>
+
+                        <!-- 删除按钮（仅管理员编辑物品时显示） -->
+                        {% if item and current_user.is_admin() %}
+                        <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            删除
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 物品删除确认模态框（仅管理员可见） -->
+{% if item and current_user.is_admin() %}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">确认删除物品</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除物品 <strong>"{{ item.name }}"</strong> 吗？</p>
+
+                <!-- 关联数据提示 -->
+                {% if item.records.count() > 0 %}
+                <div class="alert alert-warning mt-2">
+                    ⚠️ 该物品关联 {{ item.records.count() }} 条使用记录，删除后这些记录将同步删除，无法恢复。
+                {% endif %}
+                {% if item.reservations.count() > 0 %}
+                <div class="alert alert-warning mt-2">
+                    ⚠️ 该物品存在 {{ item.reservations.count() }} 条预约记录，删除后预约将自动取消。
+                </div>
+                {% endif %}
+
+                <div class="alert alert-danger mt-3">
+                    此操作不可撤销，物品的所有数据（名称、编号、功能等）将永久删除。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form action="{{ url_for('items.delete', id=item.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

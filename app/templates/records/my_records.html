@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}我的使用记录 - 物品管理系统{% endblock %}
+
+{% block content %}
+<!-- 标题与筛选 -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>我的使用记录</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('records.my_records') }}" class="btn btn-sm btn-outline-primary {% if not request.args.get('status') %}active{% endif %}">全部</a>
+        <a href="{{ url_for('records.my_records', status='using') }}" class="btn btn-sm btn-outline-danger {% if request.args.get('status') == 'using' %}active{% endif %}">使用中</a>
+        <a href="{{ url_for('records.my_records', status='returned') }}" class="btn btn-sm btn-outline-success {% if request.args.get('status') == 'returned' %}active{% endif %}">已归还</a>
+    </div>
+</div>
+
+<!-- 记录列表 -->
+{% if records %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover shadow">
+        <thead class="table-primary">
+            <tr>
+                <th>序号</th>
+                <th>物品名称</th>
+                <th>空间路径</th>
+                <th>使用地点</th>
+                <th>开始时间</th>
+                <th>归还时间</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    <a href="{{ url_for('items.view', id=record.item.id) }}">{{ record.item.name }}</a>
+                </td>
+                <td>{{ record.space_path }}</td>
+                <td>{{ record.usage_location or '未填写' }}</td>
+                <td>{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ record.return_time.strftime('%Y-%m-%d %H:%M') if record.return_time else '-' }}</td>
+                <td>
+                    <span class="badge bg-{{ 'success' if record.status == 'returned' else 'danger' }}">
+                        {{ '已归还' if record.status == 'returned' else '使用中' }}
+                    </span>
+                    {% if record.status == 'using' and record.is_overdue() %}
+                    <span class="badge bg-dark">已逾期</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <a href="{{ url_for('items.view', id=record.item.id) }}" class="btn btn-sm btn-info">查看物品</a>
+                        {% if record.status == 'using' %}
+                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#returnModal{{ record.id }}">
+                            归还
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- 归还模态框 -->
+                    {% if record.status == 'using' %}
+                    <div class="modal fade" id="returnModal{{ record.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title">归还物品</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="{{ url_for('records.return_item', record_id=record.id) }}" method="post">
+                                    <div class="modal-body">
+                                        <p>请确认归还物品 <strong>"{{ record.item.name }}"</strong></p>
+                                        <div class="mb-3">
+                                            <label for="notes{{ record.id }}" class="form-label">备注（可选）</label>
+                                            <textarea class="form-control" id="notes{{ record.id }}" name="notes" rows="3" placeholder="可填写物品状态等信息"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                        <button type="submit" class="btn btn-success">确认归还</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info text-center">
+    暂无使用记录
+    <a href="{{ url_for('spaces.index') }}" class="alert-link">浏览物品并借用</a>
+</div>
+{% endif %}
+{% endblock %}

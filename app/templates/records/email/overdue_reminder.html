@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>物品逾期提醒 - 物品管理系统</title>
+</head>
+<body>
+    {% if recipient_type == 'user' %}
+    <h2>亲爱的 {{ record.user.username }}，您好！</h2>
+    <p>温馨提醒：您借用的物品已逾期未归还，请尽快处理。</p>
+    {% else %}
+    <h2>尊敬的管理员，您好！</h2>
+    <p>系统提醒：用户 {{ record.user.username }} 借用的物品已逾期未归还，请跟进处理。</p>
+    {% endif %}
+
+    <div style="border: 1px solid #eee; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>物品信息：</strong></p>
+        <p>名称：{{ record.item.name }}</p>
+        <p>编号：{{ record.item.serial_number }}</p>
+        {% if recipient_type == 'admin' %}
+        <p>存放空间：{{ record.space_path }}</p>
+        {% endif %}
+        <p><strong>借用信息：</strong></p>
+        <p>借用时间：{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p>使用地点：{{ record.usage_location or '未填写' }}</p>
+        <p>已逾期时长：{{ (datetime.utcnow() - record.start_time).days - 10 }} 天</p>
+    </div>
+
+    {% if recipient_type == 'user' %}
+    <p>请尽快归还物品至原存放空间，如有特殊情况请联系管理员说明。</p>
+    {% else %}
+    <p>建议您联系用户 {{ record.user.username }}（邮箱：{{ record.user.email }}）提醒归还，避免物品丢失。</p>
+    {% endif %}
+
+    <p>此致<br>物品管理系统团队</p>
+    <p style="color: #999; font-size: 12px;">本邮件为系统自动发送，请勿直接回复</p>
+</body>
+</html>

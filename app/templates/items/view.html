@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.name }} - 物品管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 物品基本信息 -->
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1>{{ item.name }}</h1>
+                <p class="text-muted">
+                    所在空间：<a href="{{ url_for('spaces.view', id=item.space.id) }}">{{ item.space.get_path() }}</a>
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('records.item_records', item_id=item.id) }}" class="btn btn-outline-info">
+                    <i class="bi bi-clock-history"></i> 查看使用记录
+                </a>
+                {% if current_user.is_admin() %}
+                <a href="{{ url_for('items.edit', id=item.id) }}" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> 编辑
+                </a>
+                {% else %}
+                    {% if item.status == 'available' %}
+                    <a href="{{ url_for('records.create', item_id=item.id) }}" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> 使用
+                    </a>
+                    <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-warning">
+                        <i class="bi bi-calendar-check"></i> 预约
+                    </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 物品信息卡片 -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">物品信息</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">状态</div>
+                    <div class="col-md-9">
+                        <span class="badge bg-{{ 
+                            'success' if item.status == 'available' else 
+                            'warning' if item.status == 'reserved' else 'danger' 
+                        }} fs-6">
+                            {{ item.status|replace('available', '可用')|replace('reserved', '已预约')|replace('borrowed', '已借出') }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">编号</div>
+                    <div class="col-md-9">{{ item.serial_number }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">功能描述</div>
+                    <div class="col-md-9">{{ item.function or '无' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">创建时间</div>
+                    <div class="col-md-9">{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 fw-bold">最后更新</div>
+                    <div class="col-md-9">{{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 当前预约信息 -->
+        {% if active_reservations %}
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning text-white">
+                <h5 class="card-title mb-0">当前预约</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>预约人</th>
+                            <th>预约时间段</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reservation in active_reservations %}
+                        <tr>
+                            <td>{{ reservation.user.username }}</td>
+                            <td>
+                                {{ reservation.reservation_start.strftime('%Y-%m-%d') }} 至<br>
+                                {{ reservation.reservation_end.strftime('%Y-%m-%d') }}
+                            </td>
+                            <td><span class="badge bg-warning">有效</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 当前借用信息 -->
+        {% if current_record %}
+        <div class="card shadow mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">当前借用</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>使用人</th>
+                            <th>开始时间</th>
+                            <th>使用地点</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ current_record.user.username }}</td>
+                            <td>{{ current_record.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ current_record.usage_location or '未填写' }}</td>
+                            <td>
+                                <span class="badge bg-danger">使用中</span>
+                                {% if current_record.is_overdue() %}
+                                <span class="badge bg-dark">已逾期</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- 归还按钮（使用人或管理员可操作） -->
+                {% if current_user.is_admin() or (current_record.user_id == current_user.id and not current_record.return_time) %}
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#returnModal">
+                        归还物品
+                    </button>
+                </div>
+
+                <!-- 归还模态框 -->
+                <div class="modal fade" id="returnModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title">归还物品</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="{{ url_for('records.return_item', record_id=current_record.id) }}" method="post">
+                                <div class="modal-body">
+                                    <p>请确认归还物品 <strong>"{{ item.name }}"</strong></p>
+                                    <div class="mb-3">
+                                        <label for="notes" class="form-label">备注（可选）</label>
+                                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="可填写物品状态等信息"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                    <button type="submit" class="btn btn-success">确认归还</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 侧边栏：最近记录 -->
+    <div class="col-md-4">
+        <div class="card shadow sticky-top" style="top: 20px;">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">最近使用记录</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_records %}
+                <ul class="list-group">
+                    {% for record in recent_records %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ record.user.username }}</strong>
+                                <small class="d-block text-muted mt-1">
+                                    {{ record.start_time.strftime('%Y-%m-%d') }}
+                                    {% if record.return_time %}
+                                    - {{ record.return_time.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                    - 至今
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <span class="badge bg-{{ 'success' if record.status == 'returned' else 'danger' }}">
+                                {{ '已归还' if record.status == 'returned' else '使用中' }}
+                            </span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('records.item_records', item_id=item.id) }}" class="btn btn-sm btn-outline-primary">查看全部记录</a>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">暂无使用记录</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

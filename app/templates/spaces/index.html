@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}空间管理 - 物品管理系统{% endblock %}
+
+{% block content %}
+<!-- 标题与操作按钮 -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>空间管理</h1>
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('spaces.create', parent_id=0) }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> 创建顶级空间
+    </a>
+    {% endif %}
+</div>
+
+<!-- 顶级空间列表 -->
+{% if spaces %}
+<div class="row gap-4">
+    {% for item in spaces %}
+    <div class="col-md-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">{{ item.space.name }}</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text"><strong>子空间：</strong>{{ item.children|length }} 个</p>
+                <p class="card-text"><strong>物品数量：</strong>{{ item.space.items.count() }} 个</p>
+                <div class="d-flex gap-2 mt-3">
+                    <a href="{{ url_for('spaces.view', id=item.space.id) }}" class="btn btn-sm btn-outline-primary flex-grow-1">查看</a>
+                    {% if current_user.is_admin() %}
+                    <a href="{{ url_for('spaces.create', parent_id=item.space.id) }}" class="btn btn-sm btn-outline-secondary flex-grow-1">添加子空间</a>
+                    <a href="{{ url_for('spaces.edit', id=item.space.id) }}" class="btn btn-sm btn-outline-success flex-grow-1">编辑</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info text-center">
+    暂无顶级空间
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('spaces.create', parent_id=0) }}" class="alert-link">创建第一个空间</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

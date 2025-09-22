@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}归还物品 - {{ record.item.name }} - 物品管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title text-center mb-0">归还物品：{{ record.item.name }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <!-- 借用记录信息 -->
+                <div class="alert alert-info mb-4">
+                    <p class="mb-1"><strong>物品名称：</strong>{{ record.item.name }}</p>
+                    <p class="mb-1"><strong>使用人：</strong>{{ record.user.username }}</p>
+                    <p class="mb-1"><strong>借用时间：</strong>{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p class="mb-0"><strong>使用地点：</strong>{{ record.usage_location or '未填写' }}</p>
+                    {% if record.is_overdue() %}
+                    <div class="alert alert-danger mt-2 mb-0">
+                        ⚠️ 该物品已逾期 {{ (datetime.utcnow() - record.start_time).days - 10 }} 天，请及时归还
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- 归还表单 -->
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <!-- 归还备注 -->
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=3, placeholder="请填写归还备注（如物品状态、损坏情况等）") }}
+                        {% for error in form.notes.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">若物品有损坏，请详细说明</div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-success flex-grow-1") }}
+                        <a href="{{ url_for('items.view', id=record.item.id) }}" class="btn btn-secondary flex-grow-1">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

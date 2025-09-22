@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}借用物品 - {{ item.name }} - 物品管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="card-title text-center mb-0">借用物品：{{ item.name }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <!-- 物品基本信息 -->
+                <div class="alert alert-info mb-4">
+                    <p class="mb-1"><strong>物品名称：</strong>{{ item.name }}</p>
+                    <p class="mb-1"><strong>所在空间：</strong>{{ item.space.get_path() }}</p>
+                    <p class="mb-0"><strong>物品编号：</strong>{{ item.serial_number }}</p>
+                </div>
+
+                <!-- 借用表单 -->
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <!-- 使用地点 -->
+                    <div class="mb-3">
+                        {{ form.usage_location.label(class="form-label") }}
+                        {{ form.usage_location(class="form-control" + (" is-invalid" if form.usage_location.errors else ""), placeholder="请填写物品使用地点") }}
+                        {% for error in form.usage_location.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">需明确使用地点，便于物品追踪</div>
+                    </div>
+
+                    <!-- 备注 -->
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=3, placeholder="请填写借用备注（可选）") }}
+                        {% for error in form.notes.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-success flex-grow-1") }}
+                        <a href="{{ url_for('items.view', id=item.id) }}" class="btn btn-secondary flex-grow-1">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

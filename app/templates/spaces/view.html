@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}{{ space.name }} - 物品管理系统{% endblock %}
+
+{% block content %}
+<!-- 空间信息与操作 -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h1>{{ space.name }}</h1>
+        <p class="text-muted">路径：{{ space.get_path() }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <!-- 空间内搜索按钮 -->
+        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#searchCollapse">
+            <i class="bi bi-search"></i> 搜索物品
+        </button>
+        <!-- 管理员操作 -->
+        {% if current_user.is_admin() %}
+        <a href="{{ url_for('spaces.create', parent_id=space.id) }}" class="btn btn-secondary">
+            <i class="bi bi-plus-circle"></i> 添加子空间
+        </a>
+        <a href="{{ url_for('items.create', space_id=space.id) }}" class="btn btn-success">
+            <i class="bi bi-box-seam"></i> 添加物品
+        </a>
+        <a href="{{ url_for('spaces.edit', id=space.id) }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> 编辑空间
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 空间内搜索表单 -->
+<div class="collapse mb-4" id="searchCollapse">
+    <div class="card card-body shadow">
+        <form action="{{ url_for('spaces.search', id=space.id) }}" method="post">
+            <div class="input-group">
+                <input type="text" class="form-control" name="query" placeholder="搜索物品名称/功能/编号..." value="{{ request.args.get('query', '') }}">
+                <button class="btn btn-primary" type="submit">搜索</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 子空间区域 -->
+<div class="mb-6">
+    <h2 class="border-bottom pb-2">子空间 <span class="badge bg-secondary">{{ subspaces|length }}</span></h2>
+    {% if subspaces %}
+    <div class="row gap-3 mt-3">
+        {% for item in subspaces %}
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.space.name }}</h5>
+                    <p class="card-text">
+                        子空间：{{ item.children|length }} 个<br>
+                        物品：{{ item.space.items.count() }} 个
+                    </p>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('spaces.view', id=item.space.id) }}" class="btn btn-sm btn-outline-primary flex-grow-1">查看</a>
+                        {% if current_user.is_admin() %}
+                        <a href="{{ url_for('spaces.create', parent_id=item.space.id) }}" class="btn btn-sm btn-outline-secondary flex-grow-1">添加子空间</a>
+                        <a href="{{ url_for('spaces.edit', id=item.space.id) }}" class="btn btn-sm btn-outline-success flex-grow-1">编辑</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-3">
+        该空间暂无子空间
+        {% if current_user.is_admin() %}
+        <a href="{{ url_for('spaces.create', parent_id=space.id) }}" class="alert-link">添加子空间</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 物品区域 -->
+<div>
+    <h2 class="border-bottom pb-2">物品 <span class="badge bg-secondary">{{ items|length }}</span></h2>
+    {% if items %}
+    <div class="table-responsive mt-3">
+        <table class="table table-striped table-hover shadow">
+            <thead class="table-primary">
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>功能</th>
+                    <th>编号</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.function|truncate(30) or '无' }}</td>
+                    <td>{{ item.serial_number }}</td>
+                    <td>
+                        <span class="badge bg-{{ 
+                            'success' if item.status == 'available' else 
+                            'warning' if item.status == 'reserved' else 'danger' 
+                        }}">
+                            {{ item.status|replace('available', '可用')|replace('reserved', '已预约')|replace('borrowed', '已借出') }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('items.view', id=item.id) }}" class="btn btn-sm btn-info">查看</a>
+                            <a href="{{ url_for('records.item_records', item_id=item.id) }}" class="btn btn-sm btn-outline-info">记录</a>
+                            
+                            {% if current_user.is_admin() %}
+                            <a href="{{ url_for('items.edit', id=item.id) }}" class="btn btn-sm btn-primary">编辑</a>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}">删除</button>
+                            {% else %}
+                                {% if item.status == 'available' %}
+                                <a href="{{ url_for('records.create', item_id=item.id) }}" class="btn btn-sm btn-success">使用</a>
+                                <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-sm btn-warning">预约</a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+
+                        <!-- 物品删除模态框（管理员） -->
+                        {% if current_user.is_admin() %}
+                        <div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title">确认删除</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>确定要删除物品 <strong>"{{ item.name }}"</strong> 吗？此操作不可恢复。</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                        <form action="{{ url_for('items.delete', id=item.id) }}" method="post">
+                                            <button type="submit" class="btn btn-danger">删除</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-3">
+        该空间暂无物品
+        {% if current_user.is_admin() %}
+        <a href="{{ url_for('items.create', space_id=space.id) }}" class="alert-link">添加物品</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
