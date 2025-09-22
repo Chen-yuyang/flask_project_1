@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 物品管理系统{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="jumbotron">
+        <h1 class="display-4">欢迎使用物品管理系统</h1>
+        <p class="lead">这是一个用于管理各类物品的系统，支持多级空间管理、物品借用记录跟踪和预约功能。</p>
+        <hr class="my-4">
+        
+        {% if current_user.is_authenticated %}
+        <p>您已登录，当前角色：{{ '管理员' if current_user.is_admin() else '普通用户' }}</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary btn-lg" href="{{ url_for('spaces.index') }}" role="button">空间管理</a>
+            <a class="btn btn-secondary btn-lg" href="{{ url_for('items.all_items') }}" role="button">所有物品</a>
+            <a class="btn btn-success btn-lg" href="{{ url_for('records.my_records') }}" role="button">我的记录</a>
+            <a class="btn btn-info btn-lg" href="{{ url_for('reservations.my_reservations') }}" role="button">我的预约</a>
+        </div>
+        {% else %}
+        <p>请登录后使用系统功能</p>
+        <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}" role="button">登录</a>
+        <a class="btn btn-success btn-lg" href="{{ url_for('auth.register') }}" role="button">注册</a>
+        {% endif %}
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">最近使用的物品</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_records %}
+                    <ul class="list-group">
+                        {% for record in recent_records %}
+                        <li class="list-group-item">
+                            <a href="{{ url_for('items.view', id=record.item.id) }}">{{ record.item.name }}</a>
+                            <span class="badge bg-{{ 'warning' if record.status == 'using' else 'success' }} float-end">
+                                {{ '使用中' if record.status == 'using' else '已归还' }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">暂无使用记录</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">我的预约</h5>
+                </div>
+                <div class="card-body">
+                    {% if my_reservations %}
+                    <ul class="list-group">
+                        {% for reservation in my_reservations %}
+                        <li class="list-group-item">
+                            <a href="{{ url_for('items.view', id=reservation.item.id) }}">{{ reservation.item.name }}</a>
+                            <small class="text-muted d-block">
+                                {{ reservation.reservation_start.strftime('%Y-%m-%d') }} 至 {{ reservation.reservation_end.strftime('%Y-%m-%d') }}
+                            </small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">暂无预约</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
