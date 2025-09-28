@@ -13,7 +13,7 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     username = StringField('用户名', validators=[
-        DataRequired(), Length(min=4, max=64)
+        DataRequired(), Length(min=2, max=32)
     ])
     email = StringField('邮箱', validators=[
         DataRequired(), Email()

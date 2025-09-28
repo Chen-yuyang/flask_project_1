@@ -27,7 +27,8 @@ def create_app(config_class=Config):
     from app.routes.main import bp as main_bp
     app.register_blueprint(main_bp)
 
-    from app.routes.spaces import bp as spaces_bp
+    # 【修改1：同时导入 spaces 蓝图和 get_space_hierarchy 函数】
+    from app.routes.spaces import bp as spaces_bp, get_space_hierarchy
     app.register_blueprint(spaces_bp, url_prefix='/spaces')
 
     from app.routes.items import bp as items_bp
@@ -38,6 +39,9 @@ def create_app(config_class=Config):
 
     from app.routes.reservations import bp as reservations_bp
     app.register_blueprint(reservations_bp, url_prefix='/reservations')
+
+    # 【新增：将空间层级函数注册为模板全局函数】
+    app.jinja_env.globals['get_space_hierarchy'] = get_space_hierarchy
 
     # 创建数据库表
     with app.app_context():

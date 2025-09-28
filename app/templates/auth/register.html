@@ -16,11 +16,11 @@
                     <!-- 用户名 -->
                     <div class="mb-3">
                         {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="请输入4-64位用户名") }}
+                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="请输入2-32位用户名") }}
                         {% for error in form.username.errors %}
                         <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
-                        <div class="form-text">用户名长度4-64位</div>
+                        <div class="form-text">用户名长度2-32位</div>
                     </div>
 
                     <!-- 邮箱 -->
@@ -36,11 +36,11 @@
                     <!-- 密码 -->
                     <div class="mb-3">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="请输入至少8位密码") }}
+                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="请输入至少3位密码") }}
                         {% for error in form.password.errors %}
                         <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
-                        <div class="form-text">密码长度至少8位</div>
+                        <div class="form-text">密码长度至少3位</div>
                     </div>
 
                     <!-- 确认密码 -->

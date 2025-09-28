@@ -42,4 +42,4 @@ def manual_check_overdue():
 if __name__ == '__main__':
     # 启动时开始检查逾期记录
     check_overdue_records()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)  # debug=True仅用于开发

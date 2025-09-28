@@ -47,9 +47,16 @@
                 </ul>
 
                 <!-- 全局搜索 -->
+                <!-- 全局搜索（优化后） -->
                 {% if current_user.is_authenticated %}
                 <form class="d-flex me-3" action="{{ url_for('main.global_search') }}" method="get">
-                    <input class="form-control me-2" type="search" name="query" placeholder="搜索物品/记录/空间..." aria-label="Search">
+                    <!-- 百分比宽度+最小宽度兜底 -->
+                    <input class="form-control me-2"
+                           type="search"
+                           name="query"
+                           placeholder="搜索物品/记录/空间..."
+                           aria-label="Search"
+                           style="width: 40%; min-width: 250px; height: 38px;">
                     <button class="btn btn-light" type="submit">搜索</button>
                 </form>
                 {% endif %}
