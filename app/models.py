@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+
+import pytz
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
@@ -85,14 +87,39 @@ class Record(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     space_path = db.Column(db.String(255))
     usage_location = db.Column(db.String(255))
-    start_time = db.Column(db.DateTime, default=datetime.utcnow)
-    return_time = db.Column(db.DateTime)
+    start_time = db.Column(db.DateTime, default=datetime.utcnow)  # 数据库存UTC时间
+    return_time = db.Column(db.DateTime)  # 数据库存UTC时间（可为空）
     status = db.Column(db.String(20), default='using')  # using, returned
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 数据库存UTC时间
 
+    # 新增1：将UTC开始时间转换为东八区（北京时间）
+    def local_start_time(self):
+        """
+        返回东八区本地时间（与电脑显示一致）
+        格式：datetime对象，可直接用于strftime格式化
+        """
+        # 定义东八区时区（固定，不依赖app配置，避免配置缺失问题）
+        local_timezone = pytz.timezone('Asia/Shanghai')
+        # 将UTC时间（无时区信息）添加UTC时区标识，再转换为东八区
+        utc_time = pytz.utc.localize(self.start_time)  # 给start_time添加UTC时区
+        return utc_time.astimezone(local_timezone)  # 转换为东八区
+
+    # 新增2：将UTC归还时间转换为东八区（北京时间），处理return_time为None的情况
+    def local_return_time(self):
+        """
+        返回东八区本地时间（与电脑显示一致），若未归还则返回None
+        """
+        if not self.return_time:  # 未归还时，return_time为None
+            return None
+        local_timezone = pytz.timezone('Asia/Shanghai')
+        utc_time = pytz.utc.localize(self.return_time)
+        return utc_time.astimezone(local_timezone)
+
+    # 原有方法：检查是否逾期（无需修改，基于UTC时间判断，逻辑正确）
     def is_overdue(self):
         """检查是否逾期未还(10天)"""
         if self.status == 'using' and self.start_time:
+            # 用UTC时间比较，避免时区偏差导致的逾期判断错误
             return datetime.utcnow() - self.start_time > timedelta(days=10)
         return False
 

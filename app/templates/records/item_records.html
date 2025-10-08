@@ -36,12 +36,12 @@
             <h3 class="card-text">{{ records|selectattr('status', 'equalto', 'returned')|list|length }}</h3>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card bg-dark text-white text-center p-3 shadow">
-            <h5 class="card-title">逾期次数</h5>
-            <h3 class="card-text">{{ records|selectattr('is_overdue')|list|length }}</h3>
-        </div>
-    </div>
+{#    <div class="col-md-3">#}
+{#        <div class="card bg-dark text-white text-center p-3 shadow">#}
+{#            <h5 class="card-title">逾期次数</h5>#}
+{#            <h3 class="card-text">{{ records|selectattr('is_overdue')|list|length }}</h3>#}
+{#        </div>#}
+{#    </div>#}
 </div>
 
 <!-- 记录列表 -->
@@ -67,8 +67,9 @@
                 <td>{{ record.user.username }}</td>
                 <td>{{ record.space_path }}</td>
                 <td>{{ record.usage_location or '未填写' }}</td>
-                <td>{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>{{ record.return_time.strftime('%Y-%m-%d %H:%M') if record.return_time else '-' }}</td>
+                <!-- 修改后（显示东八区本地时间，与电脑一致） -->
+                <td>{{ record.local_start_time().strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ record.local_return_time().strftime('%Y-%m-%d %H:%M') if record.local_return_time() else '-' }}</td>
                 <td>
                     <span class="badge bg-{{ 'success' if record.status == 'returned' else 'danger' }}">
                         {{ '已归还' if record.status == 'returned' else '使用中' }}

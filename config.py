@@ -24,3 +24,5 @@ class Config:
     # 分页配置
     ITEMS_PER_PAGE = 10
     RECORDS_PER_PAGE = 10
+
+    BABEL_DEFAULT_TIMEZONE = 'Asia/Shanghai'

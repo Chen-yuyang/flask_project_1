@@ -4,6 +4,8 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from config import Config
 
+import pytz
+
 # 初始化扩展
 db = SQLAlchemy()
 login_manager = LoginManager()
