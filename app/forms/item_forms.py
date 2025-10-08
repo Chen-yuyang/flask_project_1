@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, SubmitField
-from wtforms.validators import DataRequired, Length, ValidationError
+from wtforms.validators import DataRequired, Length, ValidationError, Optional
 from app.models import Item, Space
 
 
@@ -16,7 +16,7 @@ class ItemForm(FlaskForm):
         ('available', '可用'),
         ('borrowed', '已借出'),
         ('reserved', '已预约')
-    ])
+    ], validators=[Optional()])
     space_id = SelectField('所属空间', coerce=int, validators=[DataRequired()])
     submit = SubmitField('保存')
 

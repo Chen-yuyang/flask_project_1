@@ -89,12 +89,7 @@
                     <!-- 操作按钮组 -->
                     <div class="d-flex gap-2 align-items-center">
                         {{ form.submit(class="btn btn-primary flex-grow-1") }}
-                        <a href="{{
-                            url_for('spaces.view', id=space.id) if space
-                            else url_for('items.view', id=item.id) if item
-                            else url_for('items.all_items')
-                        }}" class="btn btn-secondary flex-grow-1">取消</a>
-
+                        <a href="{{ url_for('spaces.view', id=space.id) if space else (url_for('items.view', id=item.id) if item else url_for('items.all_items')) }}" class="btn btn-secondary flex-grow-1">取消</a>
                         <!-- 删除按钮（仅管理员编辑物品时显示） -->
                         {% if item and current_user.is_admin() %}
                         <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
@@ -120,10 +115,11 @@
             <div class="modal-body">
                 <p>您确定要删除物品 <strong>"{{ item.name }}"</strong> 吗？</p>
 
-                <!-- 关联数据提示 -->
+                <!-- 关联数据提示：修正div闭合 -->
                 {% if item.records.count() > 0 %}
                 <div class="alert alert-warning mt-2">
                     ⚠️ 该物品关联 {{ item.records.count() }} 条使用记录，删除后这些记录将同步删除，无法恢复。
+                </div>  <!-- 新增：闭合alert容器 -->
                 {% endif %}
                 {% if item.reservations.count() > 0 %}
                 <div class="alert alert-warning mt-2">

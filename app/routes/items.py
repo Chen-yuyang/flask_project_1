@@ -88,6 +88,8 @@ def create(space_id):
         db.session.commit()
         flash(f'物品 "{item.name}" 创建成功')
         return redirect(url_for('spaces.view', id=space_id))
+    else:
+        print("表单验证失败，错误：", form.errors)  # 打印错误到控制台
 
     return render_template('items/edit.html',
                            title='创建物品',
