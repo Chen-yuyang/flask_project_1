@@ -32,7 +32,18 @@
                     <!-- 操作按钮 -->
                     <div class="d-flex gap-2">
                         {{ form.submit(class="btn btn-primary flex-grow-1") }}
-                        <a href="{{ url_for('spaces.index') if not parent and not space else url_for('spaces.view', id=parent.id if parent else space.parent_id) }}" class="btn btn-secondary flex-grow-1">取消</a>
+                        <!-- 取消按钮：根据场景动态跳转 -->
+                        <a href="
+                            {% if parent %}
+                                {{ url_for('spaces.view', id=parent.id) }}
+                            {% else %}
+                                {% if space and space.parent %}
+                                    {{ url_for('spaces.view', id=space.parent.id) }}
+                                {% else %}
+                                    {{ url_for('spaces.index') }}
+                                {% endif %}
+                            {% endif %}
+                        " class="btn btn-secondary flex-grow-1">取消</a>
 
                         <!-- 删除按钮（仅编辑时显示） -->
                         {% if space and current_user.is_admin() %}
