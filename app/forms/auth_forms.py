@@ -44,7 +44,7 @@ class ResetPasswordRequestForm(FlaskForm):
 
 class ResetPasswordForm(FlaskForm):
     password = PasswordField('新密码', validators=[
-        DataRequired(), Length(min=8)
+        DataRequired(), Length(min=3)
     ])
     password2 = PasswordField('确认新密码', validators=[
         DataRequired(), EqualTo('password')
@@ -55,7 +55,7 @@ class ResetPasswordForm(FlaskForm):
 class ChangePasswordForm(FlaskForm):
     old_password = PasswordField('旧密码', validators=[DataRequired()])
     new_password = PasswordField('新密码', validators=[
-        DataRequired(), Length(min=8)
+        DataRequired(), Length(min=3)
     ])
     new_password2 = PasswordField('确认新密码', validators=[
         DataRequired(), EqualTo('new_password')

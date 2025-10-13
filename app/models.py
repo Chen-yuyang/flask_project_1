@@ -1,19 +1,28 @@
 from datetime import datetime, timedelta
 
 import pytz
+from flask import current_app
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
 
+# 关键修改：使用 itsdangerous 2.2.0+ 推荐的 URLSafeTimedSerializer
+from itsdangerous import URLSafeTimedSerializer as Serializer
+
 
 class User(UserMixin, db.Model):
+    # 原有字段和方法保持不变...
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
-    role = db.Column(db.String(10), default='user')  # 'admin' or 'user'
+    role = db.Column(db.String(10), default='user')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    def get_reset_password_token(self, expires_in=1800):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        # 关键修改：移除 .decode('utf-8')，因为 dumps() 已返回字符串
+        return s.dumps({'user_id': self.id})  # 直接返回字符串令牌
     # 关系
     spaces = db.relationship('Space', backref='creator', lazy='dynamic')
     items = db.relationship('Item', backref='creator', lazy='dynamic')
@@ -22,6 +31,15 @@ class User(UserMixin, db.Model):
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+
+    @classmethod
+    def verify_reset_password_token(cls, token, max_age=3600):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token, max_age=max_age)
+        except:
+            return None
+        return cls.query.get(data['user_id'])
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
