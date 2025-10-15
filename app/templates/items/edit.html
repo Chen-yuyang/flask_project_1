@@ -54,7 +54,7 @@
                         {{ form.function(
                             class="form-control" + (" is-invalid" if form.function.errors else ""),
                             rows=4,
-                            placeholder="请描述物品功能（如：高清投影、移动办公），可选填"
+                            placeholder="请描述物品功能"
                         ) }}
                         {% for error in form.function.errors %}
                         <div class="invalid-feedback">{{ error }}</div>

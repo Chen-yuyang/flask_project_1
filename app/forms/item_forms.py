@@ -5,13 +5,16 @@ from app.models import Item, Space
 
 
 class ItemForm(FlaskForm):
+    # 显式添加 csrf_token 类型提示（不影响实际功能，仅用于 IDE 识别）
+    csrf_token: StringField  # 关键：告诉 IDE 该字段存在
+
     name = StringField('物品名称', validators=[
         DataRequired(), Length(min=1, max=100)
     ])
     serial_number = StringField('物品编号', validators=[
         DataRequired(), Length(min=1, max=50)
     ])
-    function = TextAreaField('功能描述')
+    function = TextAreaField('功能描述',validators=[DataRequired()])
     status = SelectField('状态', choices=[
         ('available', '可用'),
         ('borrowed', '已借出'),

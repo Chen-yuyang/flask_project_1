@@ -6,6 +6,9 @@ from app import db
 from app.models import Item, Space, Record, Reservation
 from app.forms.item_forms import ItemForm
 
+from app.utils import generate_and_save_item_qrcode  # 导入工具函数
+
+
 bp = Blueprint('items', __name__)
 
 
@@ -85,11 +88,15 @@ def create(space_id):
             created_by=current_user.id
         )
         db.session.add(item)
-        db.session.commit()
-        flash(f'物品 "{item.name}" 创建成功')
+        db.session.commit()  # 首次提交：获取item.id（自增主键）
+
+        # 生成并保存二维码（关键新增代码）
+        qr_path = generate_and_save_item_qrcode(item.id)  # 生成二维码
+        item.barcode_path = qr_path  # 保存路径到物品记录
+        db.session.commit()  # 二次提交：保存二维码路径
+
+        flash(f'物品 "{item.name}" 创建成功，二维码已生成')
         return redirect(url_for('spaces.view', id=space_id))
-    else:
-        print("表单验证失败，错误：", form.errors)  # 打印错误到控制台
 
     return render_template('items/edit.html',
                            title='创建物品',

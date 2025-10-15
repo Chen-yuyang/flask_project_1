@@ -209,6 +209,37 @@
                 {% endif %}
             </div>
         </div>
+            <!-- 新增：物品二维码展示与下载卡片 -->
+        <div class="card shadow sticky-top" style="top: 380px;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">物品二维码</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if item.barcode_path %}
+                <!-- 修复路径：移除重复static前缀 + 转换反斜杠为正斜杠 -->
+                {% set fixed_path = item.barcode_path.replace('static', '').replace('\\', '/').lstrip('/') %}
+                <!-- 展示二维码图片 -->
+                <img src="{{ url_for('static', filename=fixed_path) }}"
+                     alt="{{ item.name }}的二维码"
+                     class="img-thumbnail mb-3"
+                     style="max-width: 200px;">
+                <!-- 下载二维码按钮 -->
+                <a href="{{ url_for('static', filename=fixed_path) }}"
+                   class="btn btn-success"
+                   download="{{ item.name }}_{{ item.serial_number }}_二维码.png">
+                    <i class="bi bi-download"></i> 下载二维码
+                </a>
+                {% else %}
+                <!-- 若未生成二维码，显示提示 -->
+                <p class="text-muted">该物品暂未生成二维码</p>
+                {% if current_user.is_admin() %}
+                <a href="{{ url_for('items.edit', id=item.id) }}" class="btn btn-sm btn-outline-primary mt-2">
+                    前往编辑页重新生成
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

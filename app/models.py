@@ -89,6 +89,8 @@ class Item(db.Model):
     function = db.Column(db.Text)
     serial_number = db.Column(db.String(50), unique=True)
     status = db.Column(db.String(20), default='available')  # available, borrowed, reserved
+    # 新增：存储二维码图片路径
+    barcode_path = db.Column(db.String(255))
     space_id = db.Column(db.Integer, db.ForeignKey('space.id'), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

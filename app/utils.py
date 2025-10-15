@@ -1,5 +1,10 @@
+import os
 from datetime import datetime, timedelta
+
+from flask import current_app
 from flask_login import current_user
+
+import qrcode
 
 
 def is_admin():
@@ -53,3 +58,29 @@ def check_reservation_availability(item_id, start_date, end_date, exclude_id=Non
         query = query.filter(Reservation.id != exclude_id)
 
     return query.first() is None
+
+
+def generate_and_save_item_qrcode(item_id):
+    """生成物品二维码并保存到static/qrcodes目录，返回相对路径（如qrcodes/item_1_qrcode.png）"""
+    # 构建物品详情页URL（替换为实际访问地址）
+    url = f"http://192.168.1.101:8080/items/{item_id}"  # 替换为你的局域网IP或域名
+    # 生成二维码
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    # 定义存储路径（static/qrcodes目录）
+    qr_dir = os.path.join(current_app.root_path, 'static', 'qrcodes')
+    os.makedirs(qr_dir, exist_ok=True)  # 确保目录存在
+    qr_filename = f"item_{item_id}_qrcode.png"
+    qr_path = os.path.join(qr_dir, qr_filename)
+    img.save(qr_path)
+
+    # 返回相对static目录的子路径（如qrcodes/item_1_qrcode.png）
+    return os.path.join('qrcodes', qr_filename)
