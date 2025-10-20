@@ -37,6 +37,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('items.all_items') }}">所有物品</a>
                     </li>
+                    {% if current_user.is_admin() %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('records.all_records') }}">所有记录</a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('records.my_records') }}">我的记录</a>
                     </li>
@@ -73,9 +78,6 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">修改密码</a></li>
-                            {% if current_user.is_admin() %}
-                            <li><a class="dropdown-item" href="{{ url_for('records.all_records') }}">所有记录</a></li>
-                            {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">退出登录</a></li>
                         </ul>
