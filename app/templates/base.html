@@ -9,6 +9,8 @@
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <!-- 引入Bootstrap样式 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 引入Bootstrap Icons（用于菜单图标） -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         .sidebar { height: 100vh; position: sticky; top: 0; overflow-y: auto; }
         .space-level-0 { padding-left: 10px; }
@@ -52,10 +54,8 @@
                 </ul>
 
                 <!-- 全局搜索 -->
-                <!-- 全局搜索（优化后） -->
                 {% if current_user.is_authenticated %}
                 <form class="d-flex me-3" action="{{ url_for('main.global_search') }}" method="get">
-                    <!-- 百分比宽度+最小宽度兜底 -->
                     <input class="form-control me-2"
                            type="search"
                            name="query"
@@ -97,28 +97,53 @@
 
     <div class="container-fluid">
         <div class="row">
-            <!-- 侧边栏（空间导航，递归展示多级空间） -->
+            <!-- 侧边栏（仅登录用户可见） -->
             {% if current_user.is_authenticated %}
-            <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse" id="sidebarMenu">
+            <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse show" id="sidebarMenu">
                 <div class="position-sticky pt-3">
                     <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
                         <span>空间导航</span>
                     </h6>
                     <ul class="nav flex-column">
+                        <!-- 所有空间入口 -->
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('spaces.index') }}">所有空间</a>
+                            <a class="nav-link px-3" href="{{ url_for('spaces.index') }}">
+                                <i class="bi bi-folder2 me-2"></i> 所有空间
+                            </a>
                         </li>
-                        <!-- 递归展示多级空间（替代while循环，符合Jinja2语法） -->
+
+                        <!-- 递归渲染多级空间 -->
                         {% with spaces = get_space_hierarchy() %}
                             {% for item in spaces recursive %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('spaces.view', id=item.space.id) }}">
-                                    {{ item.space.name }}
-                                </a>
                                 {% if item.children %}
-                                <ul class="nav flex-column">
-                                    {{ loop(item.children) }}  <!-- 递归调用子空间 -->
-                                </ul>
+                                <!-- 有子空间：折叠按钮 + 跳转链接 -->
+                                <div class="d-flex align-items-center">
+                                    <button
+                                        class="btn btn-link nav-link p-0 me-2 space-toggle"
+                                        data-space-id="{{ item.space.id }}"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#spaceCollapse-{{ item.space.id }}"
+                                        aria-expanded="true">
+                                        <i class="bi bi-chevron-down small"></i>
+                                    </button>
+                                    <a class="nav-link px-2 flex-grow-1"
+                                       href="{{ url_for('spaces.view', id=item.space.id) }}">
+                                        <i class="bi bi-folder me-2"></i> {{ item.space.name }}
+                                    </a>
+                                </div>
+                                <!-- 子空间折叠容器 -->
+                                <div id="spaceCollapse-{{ item.space.id }}" class="collapse show ms-4">
+                                    <ul class="nav flex-column">
+                                        {{ loop(item.children) }}
+                                    </ul>
+                                </div>
+                                {% else %}
+                                <!-- 无子空间：直接跳转 -->
+                                <a class="nav-link px-3"
+                                   href="{{ url_for('spaces.view', id=item.space.id) }}">
+                                    <i class="bi bi-folder2-open me-2"></i> {{ item.space.name }}
+                                </a>
                                 {% endif %}
                             </li>
                             {% endfor %}
@@ -127,6 +152,39 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- 状态持久化脚本（已注释） -->
+{#            <script>#}
+{#            document.addEventListener('DOMContentLoaded', function() {#}
+{#                // 1. 恢复展开状态#}
+{#                const spaceToggles = document.querySelectorAll('.space-toggle');#}
+{#                spaceToggles.forEach(toggle => {#}
+{#                    const spaceId = toggle.getAttribute('data-space-id');#}
+{#                    const isExpanded = localStorage.getItem(`spaceExpanded_${spaceId}`) === 'true';#}
+{#                    const collapseTarget = document.getElementById(`spaceCollapse-${spaceId}`);#}
+{##}
+{#                    if (isExpanded && collapseTarget) {#}
+{#                        const bsCollapse = new bootstrap.Collapse(collapseTarget, { toggle: false });#}
+{#                        bsCollapse.show();#}
+{#                        toggle.querySelector('i').classList.remove('bi-chevron-down');#}
+{#                        toggle.querySelector('i').classList.add('bi-chevron-up');#}
+{#                    }#}
+{#                });#}
+{##}
+{#                // 2. 保存展开状态#}
+{#                spaceToggles.forEach(toggle => {#}
+{#                    toggle.addEventListener('click', function() {#}
+{#                        const spaceId = this.getAttribute('data-space-id');#}
+{#                        const collapseTarget = document.getElementById(`spaceCollapse-${spaceId}`);#}
+{#                        const isExpanded = collapseTarget.classList.contains('show');#}
+{##}
+{#                        localStorage.setItem(`spaceExpanded_${spaceId}`, !isExpanded);#}
+{#                        this.querySelector('i').classList.toggle('bi-chevron-down');#}
+{#                        this.querySelector('i').classList.toggle('bi-chevron-up');#}
+{#                    });#}
+{#                });#}
+{#            });#}
+{#            </script>#}
 
             <!-- 主内容区 -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 content">
