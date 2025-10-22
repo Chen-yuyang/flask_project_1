@@ -11,14 +11,14 @@ bp = Blueprint('main', __name__)
 @bp.route('/')
 def index():
     if current_user.is_authenticated:
-        # 获取最近的使用记录
-        recent_records = current_user.records.order_by(Record.start_time.desc()).limit(5).all()
+        # 正确代码：使用原始数据库字段_utc_start_time
+        recent_records = current_user.records.order_by(Record._utc_start_time.desc()).limit(5).all()
 
         # 获取当前用户的有效预约
         my_reservations = current_user.reservations.filter(
             Reservation.status == 'valid',
-            Reservation.reservation_end >= datetime.utcnow()
-        ).order_by(Reservation.reservation_start).limit(5).all()
+            Reservation._utc_reservation_end >= datetime.utcnow()
+        ).order_by(Reservation._utc_reservation_start).limit(5).all()
 
         return render_template('main/index.html',
                                recent_records=recent_records,

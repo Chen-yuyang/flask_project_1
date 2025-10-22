@@ -48,15 +48,15 @@ def view(id):
     ).first()
 
     # 获取最近的使用记录
-    recent_records = Record.query.filter_by(item_id=id).order_by(Record.start_time.desc()).limit(5).all()
+    recent_records = Record.query.filter_by(item_id=id).order_by(Record._utc_start_time.desc()).limit(5).all()
 
     # 获取当前有效的预约
     active_reservations = Reservation.query.filter_by(
         item_id=id,
         status='valid'
     ).filter(
-        Reservation.reservation_start <= datetime.utcnow(),
-        Reservation.reservation_end >= datetime.utcnow()
+        Reservation._utc_reservation_start <= datetime.utcnow(),
+        Reservation._utc_reservation_end >= datetime.utcnow()
     ).all()
 
     return render_template('items/view.html',

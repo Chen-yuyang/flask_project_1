@@ -14,7 +14,7 @@ bp = Blueprint('reservations', __name__)
 def my_reservations():
     """查看当前用户的预约"""
     status = request.args.get('status', '')
-    reservations_query = current_user.reservations.order_by(Reservation.reservation_start)
+    reservations_query = current_user.reservations.order_by(Reservation._utc_reservation_start)
 
     if status:
         reservations_query = reservations_query.filter(Reservation.status == status)
@@ -31,12 +31,12 @@ def item_reservations(item_id):
 
     # 管理员可以查看所有预约，普通用户只能查看自己的
     if current_user.is_admin():
-        reservations = Reservation.query.filter_by(item_id=item_id).order_by(Reservation.reservation_start).all()
+        reservations = Reservation.query.filter_by(item_id=item_id).order_by(Reservation._utc_reservation_start).all()
     else:
         reservations = Reservation.query.filter_by(
             item_id=item_id,
             user_id=current_user.id
-        ).order_by(Reservation.reservation_start).all()
+        ).order_by(Reservation._utc_reservation_start).all()
 
     return render_template('reservations/item_reservations.html',
                            reservations=reservations,
@@ -68,8 +68,8 @@ def create(item_id):
             item_id=item_id,
             status='valid'
         ).filter(
-            Reservation.reservation_start <= form.reservation_end.data,
-            Reservation.reservation_end >= form.reservation_start.data
+            Reservation._utc_reservation_start <= form.reservation_end.data,
+            Reservation._utc_reservation_end >= form.reservation_start.data
         ).first()
 
         if overlapping:

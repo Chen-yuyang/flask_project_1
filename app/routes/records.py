@@ -14,7 +14,7 @@ bp = Blueprint('records', __name__)
 def my_records():
     """查看当前用户的使用记录"""
     status = request.args.get('status', '')
-    records_query = current_user.records.order_by(Record.start_time.desc())
+    records_query = current_user.records.order_by(Record._utc_start_time.desc())
 
     if status:
         records_query = records_query.filter(Record.status == status)
@@ -35,7 +35,7 @@ def all_records():
     item_id = request.args.get('item_id', '')
     status = request.args.get('status', '')
 
-    records_query = Record.query.order_by(Record.start_time.desc())
+    records_query = Record.query.order_by(Record._utc_start_time.desc())
 
     if user_id:
         records_query = records_query.filter(Record.user_id == user_id)
@@ -53,7 +53,7 @@ def all_records():
 def item_records(item_id):
     """查看特定物品的使用记录"""
     item = Item.query.get_or_404(item_id)
-    records = Record.query.filter_by(item_id=item_id).order_by(Record.start_time.desc()).all()
+    records = Record.query.filter_by(item_id=item_id).order_by(Record._utc_start_time.desc()).all()
     return render_template('records/item_records.html', records=records, item=item)
 
 
@@ -111,7 +111,7 @@ def return_item(record_id):
     if form.validate_on_submit() or request.method == 'POST':
         # 更新记录状态
         record.status = 'returned'
-        record.return_time = datetime.utcnow()
+        record._utc_return_time = datetime.utcnow()
 
         # 更新物品状态
         item = record.item
