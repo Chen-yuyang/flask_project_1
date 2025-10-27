@@ -113,7 +113,7 @@ class Item(db.Model):
     name = db.Column(db.String(100), nullable=False)
     function = db.Column(db.Text)
     serial_number = db.Column(db.String(50), unique=True)
-    status = db.Column(db.String(20), default='available')
+    status = db.Column(db.String(20), default='available')  # available, borrowed, reserved
     barcode_path = db.Column(db.String(255))
     space_id = db.Column(db.Integer, db.ForeignKey('space.id'), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -153,7 +153,7 @@ class Record(db.Model):
     _utc_start_time = db.Column('start_time', db.DateTime, default=datetime.utcnow)
     _utc_return_time = db.Column('return_time', db.DateTime)
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(20), default='using')
+    status = db.Column(db.String(20), default='using')  # using, returned
 
     # 前端调用record.start_time / return_time / created_at时返回本地时间
     @property
@@ -193,7 +193,7 @@ class Reservation(db.Model):
     _utc_reservation_start = db.Column('reservation_start', db.DateTime, nullable=False)
     _utc_reservation_end = db.Column('reservation_end', db.DateTime, nullable=False)
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(20), default='valid')
+    status = db.Column(db.String(20), default='valid')  # valid, cancelled, used
 
     # 前端调用reservation.reservation_start / end / created_at时返回本地时间
     @property

@@ -1,3 +1,5 @@
+import pytz
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
@@ -7,6 +9,8 @@ from app.models import Item, Reservation
 from app.forms.reservation_forms import ReservationForm
 
 bp = Blueprint('reservations', __name__)
+
+LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
 
 
 @bp.route('/my')
@@ -20,16 +24,63 @@ def my_reservations():
         reservations_query = reservations_query.filter(Reservation.status == status)
 
     reservations = reservations_query.all()
-    return render_template('reservations/my_reservations.html', reservations=reservations)
+    now_local = datetime.now(LOCAL_TIMEZONE)
+
+    return render_template('reservations/my_reservations.html',
+                           reservations=reservations,
+                           now_local=now_local  # 后端传递当前本地时间
+                           )
 
 
-@bp.route('/item/<int:item_id>')
+# 新增：所有预约（仅管理员）
+@bp.route('/all')
 @login_required
-def item_reservations(item_id):
+def all_reservations():
+    # 权限控制：仅管理员可查看
+    if not current_user.is_admin():
+        flash('没有权限查看所有预约记录', 'danger')
+        return redirect(url_for('reservations.my_reservations'))
+
+    # 可选：添加筛选条件（如按状态、物品、用户筛选）
+    status = request.args.get('status', '')
+    item_id = request.args.get('item_id', '')
+    user_id = request.args.get('user_id', '')
+
+    # 构建查询（按预约开始时间倒序）
+    reservations_query = Reservation.query.order_by(Reservation._utc_reservation_start.desc())
+
+    # 筛选逻辑
+    if status:
+        reservations_query = reservations_query.filter(Reservation.status == status)
+    if item_id:
+        reservations_query = reservations_query.filter(Reservation.item_id == item_id)
+    if user_id:
+        reservations_query = reservations_query.filter(Reservation.user_id == user_id)
+
+    reservations = reservations_query.all()
+    # 传递所有物品列表（用于筛选下拉框）
+    all_items = Item.query.all()
+
+    return render_template(
+        'reservations/all_reservations.html',
+        reservations=reservations,
+        all_items=all_items,
+        current_status=status,
+        current_item_id=item_id,
+        current_user_id=user_id
+    )
+
+
+# 关键：路由函数名必须是 item_reservations（与模板中的端点后缀一致）
+@bp.route('/item/<int:item_id>')  # 确保路由参数是 item_id
+@login_required
+def item_reservations(item_id):  # 函数名必须是 item_reservations
     """查看特定物品的所有预约"""
     item = Item.query.get_or_404(item_id)
 
-    # 管理员可以查看所有预约，普通用户只能查看自己的
+    now_local = datetime.now(LOCAL_TIMEZONE)  # 关键：后端提前算好，传给模板
+
+    # 权限逻辑（管理员查看所有，普通用户查看自己的）
     if current_user.is_admin():
         reservations = Reservation.query.filter_by(item_id=item_id).order_by(Reservation._utc_reservation_start).all()
     else:
@@ -40,7 +91,9 @@ def item_reservations(item_id):
 
     return render_template('reservations/item_reservations.html',
                            reservations=reservations,
-                           item=item)
+                           item=item,
+                           now_local=now_local
+                           )
 
 
 @bp.route('/create/<int:item_id>', methods=['GET', 'POST'])

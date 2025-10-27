@@ -47,7 +47,7 @@
                     }}">
                         {{ reservation.status|replace('valid', '有效')|replace('cancelled', '已取消')|replace('used', '已使用') }}
                     </span>
-                    {% if reservation.status == 'valid' and reservation.reservation_start > datetime.utcnow() %}
+                    {% if reservation.status == 'valid' and reservation.reservation_start > now_local %}
                     <span class="badge bg-warning">未开始</span>
                     {% endif %}
                 </td>
