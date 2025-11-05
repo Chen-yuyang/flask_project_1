@@ -195,7 +195,7 @@ class Reservation(db.Model):
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='valid')  # valid, cancelled, used
 
-    # 前端调用reservation.reservation_start / end / created_at时返回本地时间
+    # 前端调用时返回东八区本地时间
     @property
     def reservation_start(self):
         if not self._utc_reservation_start:
@@ -217,8 +217,8 @@ class Reservation(db.Model):
         utc_aware = pytz.utc.localize(self._utc_created_at)
         return utc_aware.astimezone(LOCAL_TIMEZONE)
 
-    # 预约有效性判断基于UTC时间（逻辑不变）
+    # 预约有效性判断（基于UTC时间）
     def is_active(self):
         now = datetime.utcnow()
         return (self.status == 'valid' and
-                self._utc_reservation_start <= now <= self._utc_reservation_end)  # 使用数据库原始UTC时间
+                self._utc_reservation_start <= now <= self._utc_reservation_end)

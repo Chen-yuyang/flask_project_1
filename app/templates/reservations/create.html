@@ -10,44 +10,55 @@
                 <h4 class="card-title text-center mb-0">预约物品：{{ item.name }}</h4>
             </div>
             <div class="card-body p-4">
-                <!-- 物品基本信息 -->
+                <!-- 实时当前时间提示 -->
                 <div class="alert alert-info mb-4">
-                    <p class="mb-1"><strong>物品名称：</strong>{{ item.name }}</p>
-                    <p class="mb-1"><strong>所在空间：</strong>{{ item.space.get_path() }}</p>
-                    <p class="mb-0"><strong>物品状态：</strong><span class="badge bg-success">可用</span></p>
-                </div>
-
-                <!-- 预约说明 -->
-                <div class="alert alert-warning mb-4">
-                    <p class="mb-0"><i class="bi bi-info-circle"></i> 预约规则：单次预约最长30天，不可预约过去的时间，已预约时间段不可重复预约。</p>
+                    <p id="current-time">正在获取当前时间...</p>
+                    <p class="mb-0"><i class="bi bi-info-circle"></i> 预约规则：单次预约最长7天，不可预约过去的时间，已预约时间段不可重复预约。</p>
                 </div>
 
                 <!-- 预约表单 -->
-                <form method="POST">
+                <form method="POST" id="reservation-form">
                     {{ form.hidden_tag() }}
 
-                    <!-- 预约开始时间 -->
+                    <!-- 预约开始时间（修复语法错误） -->
                     <div class="mb-3">
                         {{ form.reservation_start.label(class="form-label") }}
-                        {{ form.reservation_start(class="form-control" + (" is-invalid" if form.reservation_start.errors else ""), type="date") }}
+                        {{ form.reservation_start(
+                            id="reservation_start",
+                            class="form-control" + (" is-invalid" if form.reservation_start.errors else ""),
+                            type="datetime-local",
+                            step="60",
+                            required=True
+                        ) }}
                         {% for error in form.reservation_start.errors %}
                         <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
+                        <div class="form-text">默认当前实时时间（精确到分钟，秒数为00），可修改日期、小时或分钟</div>
                     </div>
 
-                    <!-- 预约结束时间 -->
+                    <!-- 预约结束时间（修复语法错误） -->
                     <div class="mb-3">
                         {{ form.reservation_end.label(class="form-label") }}
-                        {{ form.reservation_end(class="form-control" + (" is-invalid" if form.reservation_end.errors else ""), type="date") }}
+                        {{ form.reservation_end(
+                            class="form-control" + (" is-invalid" if form.reservation_end.errors else ""),
+                            type="datetime-local",
+                            step="60",
+                            required=True
+                        ) }}
                         {% for error in form.reservation_end.errors %}
                         <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
+                        <div class="form-text">默认当前时间+1小时（精确到分钟，秒数为00），可修改任意层级</div>
                     </div>
 
-                    <!-- 预约备注 -->
+                    <!-- 预约备注（修复语法错误） -->
                     <div class="mb-3">
                         {{ form.notes.label(class="form-label") }}
-                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=3, placeholder="请填写预约备注（可选）") }}
+                        {{ form.notes(
+                            class="form-control" + (" is-invalid" if form.notes.errors else ""),
+                            rows=3,
+                            placeholder="请填写预约备注（可选）"
+                        ) }}
                         {% for error in form.notes.errors %}
                         <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
@@ -63,4 +74,34 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript 实时更新时间 -->
+<script>
+  // 实时更新预约开始时间为当前本地时间（东八区，秒数强制为00）
+  function updateStartTime() {
+    const now = new Date(); // 本地东八区时间
+    now.setSeconds(0, 0); // 秒数固定为00
+    const formatted = now.toISOString().slice(0, 16) + ':00';
+    document.getElementById('reservation_start').value = formatted;
+  }
+
+  // 实时显示当前本地时间（东八区）
+  function updateCurrentTime() {
+    const now = new Date(); // 本地东八区时间
+    const formatted = now.toISOString().slice(0, 19).replace('T', ' ');
+    document.getElementById('current-time').textContent = `当前实时时间：${formatted}`;
+  }
+
+  window.onload = function() {
+    updateStartTime();
+    updateCurrentTime();
+    setInterval(updateStartTime, 60000); // 每分钟更新一次（秒数固定）
+    setInterval(updateCurrentTime, 1000); // 每秒更新时间提示
+  };
+
+  // 提交前最后一次更新
+  document.getElementById('reservation-form').addEventListener('submit', function() {
+    updateStartTime();
+  });
+</script>
 {% endblock %}

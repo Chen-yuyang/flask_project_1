@@ -99,42 +99,37 @@ def item_reservations(item_id):  # 函数名必须是 item_reservations
 @bp.route('/create/<int:item_id>', methods=['GET', 'POST'])
 @login_required
 def create(item_id):
-    """创建物品预约"""
+    """创建物品预约（适配东八区时区+时分秒精度）"""
     item = Item.query.get_or_404(item_id)
-
-    # 检查物品状态
-    if item.status != 'available':
-        flash(f'物品 "{item.name}" 当前不可预约，状态：{item.status}')
-        return redirect(url_for('items.view', id=item_id))
-
     form = ReservationForm()
 
-    # 设置默认预约时间为今天开始，持续3天
-    if not form.reservation_start.data:
-        form.reservation_start.data = datetime.now().date()
-    if not form.reservation_end.data:
-        form.reservation_end.data = (datetime.now() + timedelta(days=3)).date()
-
     if form.validate_on_submit():
-        # 检查该时间段是否已有预约
+        # 1. 将东八区aware时间转换为UTC时间（存入数据库）
+        start_local = form.reservation_start.data
+        start_utc = start_local.astimezone(pytz.utc)
+        end_local = form.reservation_end.data
+        end_utc = end_local.astimezone(pytz.utc)
+
+        # 2. 检查重叠预约（用UTC时间与数据库UTC字段比较）
         overlapping = Reservation.query.filter_by(
             item_id=item_id,
             status='valid'
         ).filter(
-            Reservation._utc_reservation_start <= form.reservation_end.data,
-            Reservation._utc_reservation_end >= form.reservation_start.data
+            Reservation._utc_reservation_start < end_utc,
+            Reservation._utc_reservation_end > start_utc
         ).first()
 
         if overlapping:
             flash('该时间段已有预约，请选择其他时间')
             return render_template('reservations/create.html', form=form, item=item)
 
-        # 创建预约
+        # 3. 创建预约记录（存入UTC时间）
         reservation = Reservation(
             item_id=item_id,
             user_id=current_user.id,
-            reservation_start=datetime.combine(form.reservation_start.data, datetime.min.time()),
-            reservation_end=datetime.combine(form.reservation_end.data, datetime.max.time()),
+            _utc_reservation_start=start_utc,
+            _utc_reservation_end=end_utc,
+            notes=form.notes.data,
             status='valid'
         )
 
