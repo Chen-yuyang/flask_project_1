@@ -46,6 +46,10 @@ def create_app(config_class=Config):
     from app.routes.reservations import bp as reservations_bp
     app.register_blueprint(reservations_bp, url_prefix='/reservations')
 
+    # 新增：注册管理员蓝图（URL前缀为 /admin）
+    from app.routes.admin import bp as admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+
     # 【新增：将空间层级函数注册为模板全局函数】
     app.jinja_env.globals['get_space_hierarchy'] = get_space_hierarchy
 

@@ -6,6 +6,20 @@ from flask_login import current_user
 
 import qrcode
 
+from functools import wraps
+from flask import redirect, url_for, flash
+
+
+# 登录且是管理员才能访问的装饰器（适配role字段）
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin():
+            flash('您没有权限访问此页面（需要管理员权限）', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 def is_admin():
     """检查当前用户是否为管理员"""
@@ -32,6 +46,7 @@ def is_overdue(record, days=10):
     return (datetime.utcnow() - record.start_time) > timedelta(days=days)
 
 
+# 当前未使用
 def format_datetime(dt, format='%Y-%m-%d %H:%M'):
     """格式化日期时间"""
     if not dt:
@@ -39,6 +54,7 @@ def format_datetime(dt, format='%Y-%m-%d %H:%M'):
     return dt.strftime(format)
 
 
+# 当前未使用
 def check_reservation_availability(item_id, start_date, end_date, exclude_id=None):
     """
     检查物品在指定时间段是否可预约

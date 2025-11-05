@@ -34,7 +34,6 @@ class User(UserMixin, db.Model):
         utc_aware = pytz.utc.localize(utc_time)  # 标记为UTC时间
         return utc_aware.astimezone(LOCAL_TIMEZONE)  # 转换为本地时间
 
-    # 其他原有方法保持不变...
     def get_reset_password_token(self, expires_in=1800):
         s = Serializer(current_app.config['SECRET_KEY'])
         return s.dumps({'user_id': self.id})
@@ -73,7 +72,8 @@ class Space(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('space.id'))
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    # 【修改1：允许创建者为空（用户删除后保留空间）】
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     # 数据库存储UTC时间
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
@@ -86,7 +86,6 @@ class Space(db.Model):
         utc_aware = pytz.utc.localize(self._utc_created_at)
         return utc_aware.astimezone(LOCAL_TIMEZONE)
 
-    # 原有方法保持不变...
     def get_path(self):
         path = [self.name]
         current = self.parent
@@ -116,7 +115,8 @@ class Item(db.Model):
     status = db.Column(db.String(20), default='available')  # available, borrowed, reserved
     barcode_path = db.Column(db.String(255))
     space_id = db.Column(db.Integer, db.ForeignKey('space.id'), nullable=False)
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    # 【修改2：允许创建者为空（用户删除后保留物品）】
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     # 数据库存储UTC时间
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
@@ -145,7 +145,8 @@ class Item(db.Model):
 class Record(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    # 【修改3：允许用户ID为空（用户删除后保留记录）】
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     space_path = db.Column(db.String(255))
     usage_location = db.Column(db.String(255))
 
@@ -177,7 +178,7 @@ class Record(db.Model):
         utc_aware = pytz.utc.localize(self._utc_created_at)
         return utc_aware.astimezone(LOCAL_TIMEZONE)
 
-    # 逾期判断基于UTC时间（逻辑不变，确保准确性）
+    # 逾期判断基于UTC时间
     def is_overdue(self):
         if self.status == 'using' and self._utc_start_time:  # 使用数据库原始UTC时间判断
             return datetime.utcnow() - self._utc_start_time > timedelta(days=10)
@@ -187,7 +188,8 @@ class Record(db.Model):
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    # 【修改4：允许用户ID为空（用户删除后保留预约）】
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     # 数据库存储UTC时间
     _utc_reservation_start = db.Column('reservation_start', db.DateTime, nullable=False)
