@@ -10,7 +10,7 @@
                 <h4 class="card-title text-center mb-0">预约物品：{{ item.name }}</h4>
             </div>
             <div class="card-body p-4">
-                <!-- 实时当前时间提示 -->
+                <!-- 实时东八区时间提示 -->
                 <div class="alert alert-info mb-4">
                     <p id="current-time">正在获取当前时间...</p>
                     <p class="mb-0"><i class="bi bi-info-circle"></i> 预约规则：单次预约最长7天，不可预约过去的时间，已预约时间段不可重复预约。</p>
@@ -20,7 +20,7 @@
                 <form method="POST" id="reservation-form">
                     {{ form.hidden_tag() }}
 
-                    <!-- 预约开始时间（修复语法错误） -->
+<!-- 预约开始时间 -->
                     <div class="mb-3">
                         {{ form.reservation_start.label(class="form-label") }}
                         {{ form.reservation_start(
@@ -33,10 +33,10 @@
                         {% for error in form.reservation_start.errors %}
                         <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
-                        <div class="form-text">默认当前实时时间（精确到分钟，秒数为00），可修改日期、小时或分钟</div>
+                        <div class="form-text">默认当前时间（精确到分钟），可修改日期、小时或分钟</div>
                     </div>
 
-                    <!-- 预约结束时间（修复语法错误） -->
+                    <!-- 预约结束时间 -->
                     <div class="mb-3">
                         {{ form.reservation_end.label(class="form-label") }}
                         {{ form.reservation_end(
@@ -48,10 +48,10 @@
                         {% for error in form.reservation_end.errors %}
                         <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
-                        <div class="form-text">默认当前时间+1小时（精确到分钟，秒数为00），可修改任意层级</div>
+                        <div class="form-text">默认当前时间+1小时（精确到分钟），可修改任意层级</div>
                     </div>
 
-                    <!-- 预约备注（修复语法错误） -->
+                    <!-- 预约备注（语法完全正确） -->
                     <div class="mb-3">
                         {{ form.notes.label(class="form-label") }}
                         {{ form.notes(
@@ -75,28 +75,44 @@
     </div>
 </div>
 
-<!-- JavaScript 实时更新时间 -->
+<!-- JavaScript：强制东八区时间 + 实时更新 -->
 <script>
-  // 实时更新预约开始时间为当前本地时间（东八区，秒数强制为00）
+  // 更新预约开始时间为东八区当前时间（仅到分钟，秒数强制为00）
   function updateStartTime() {
-    const now = new Date(); // 本地东八区时间
-    now.setSeconds(0, 0); // 秒数固定为00
-    const formatted = now.toISOString().slice(0, 16) + ':00';
+    const now = new Date();
+    now.setSeconds(0, 0); // 秒数固定为00（但不显示）
+    const timezoneOffset = now.getTimezoneOffset();
+    now.setMinutes(now.getMinutes() - timezoneOffset); // 转换为UTC时间（datetime-local默认解析为UTC）
+    const formatted = now.toISOString().slice(0, 16);  // 格式：2025-11-05T16:17
     document.getElementById('reservation_start').value = formatted;
   }
 
-  // 实时显示当前本地时间（东八区）
+  // 实时显示东八区时间（包含秒数，仅用于提示）
   function updateCurrentTime() {
-    const now = new Date(); // 本地东八区时间
-    const formatted = now.toISOString().slice(0, 19).replace('T', ' ');
-    document.getElementById('current-time').textContent = `当前实时时间：${formatted}`;
+    const formatter = new Intl.DateTimeFormat('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(new Date());
+    const formatted = parts.reduce((acc, part) => {
+      if (part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+    const timeStr = `${formatted.year}/${formatted.month}/${formatted.day} ${formatted.hour}:${formatted.minute}:${formatted.second}`;
+    document.getElementById('current-time').textContent = `当前实时时间：${timeStr}`;
   }
 
   window.onload = function() {
     updateStartTime();
     updateCurrentTime();
-    setInterval(updateStartTime, 60000); // 每分钟更新一次（秒数固定）
-    setInterval(updateCurrentTime, 1000); // 每秒更新时间提示
+    setInterval(updateStartTime, 60000); // 每分钟更新一次（仅到分钟，无需每秒更新）
+    setInterval(updateCurrentTime, 1000); // 每秒更新时间提示（包含秒数）
   };
 
   // 提交前最后一次更新

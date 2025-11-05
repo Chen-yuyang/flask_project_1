@@ -99,18 +99,17 @@ def item_reservations(item_id):  # 函数名必须是 item_reservations
 @bp.route('/create/<int:item_id>', methods=['GET', 'POST'])
 @login_required
 def create(item_id):
-    """创建物品预约（适配东八区时区+时分秒精度）"""
     item = Item.query.get_or_404(item_id)
     form = ReservationForm()
 
     if form.validate_on_submit():
-        # 1. 将东八区aware时间转换为UTC时间（存入数据库）
+        # 1. 将东八区aware时间转换为UTC时间（数据库存储UTC）
         start_local = form.reservation_start.data
         start_utc = start_local.astimezone(pytz.utc)
         end_local = form.reservation_end.data
         end_utc = end_local.astimezone(pytz.utc)
 
-        # 2. 检查重叠预约（用UTC时间与数据库UTC字段比较）
+        # 2. 检查重叠预约（基于UTC时间与数据库UTC字段比较）
         overlapping = Reservation.query.filter_by(
             item_id=item_id,
             status='valid'

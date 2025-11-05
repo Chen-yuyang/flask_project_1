@@ -194,6 +194,7 @@ class Reservation(db.Model):
     _utc_reservation_end = db.Column('reservation_end', db.DateTime, nullable=False)
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='valid')  # valid, cancelled, used
+    notes = db.Column(db.Text, nullable=True)  # 新增notes字段，存储预约备注
 
     # 前端调用时返回东八区本地时间
     @property
