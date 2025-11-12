@@ -195,8 +195,9 @@ class Reservation(db.Model):
     _utc_reservation_start = db.Column('reservation_start', db.DateTime, nullable=False)
     _utc_reservation_end = db.Column('reservation_end', db.DateTime, nullable=False)
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(20), default='valid')  # valid, cancelled, used
-    notes = db.Column(db.Text, nullable=True)  # 新增notes字段，存储预约备注
+    # 新增状态：scheduled/active/expired/cancelled/used/conflicted
+    status = db.Column(db.String(20), default='scheduled')
+    notes = db.Column(db.Text, nullable=True)
 
     # 前端调用时返回东八区本地时间
     @property
@@ -220,8 +221,27 @@ class Reservation(db.Model):
         utc_aware = pytz.utc.localize(self._utc_created_at)
         return utc_aware.astimezone(LOCAL_TIMEZONE)
 
-    # 预约有效性判断（基于UTC时间）
+    # 状态判断逻辑（结合物品归还状态）
+    def is_scheduled(self):
+        """判断是否处于“待开始”状态"""
+        now_utc = datetime.utcnow()
+        return self.status == 'scheduled' and now_utc < self._utc_reservation_start
+
     def is_active(self):
-        now = datetime.utcnow()
-        return (self.status == 'valid' and
-                self._utc_reservation_start <= now <= self._utc_reservation_end)
+        """判断是否处于“有效可使用”状态"""
+        now_utc = datetime.utcnow()
+        # 需满足：状态为active + 物品已归还 + 在预约时段内
+        item = self.item
+        is_item_available = item.status == 'available'
+        is_in_time_range = self._utc_reservation_start <= now_utc <= self._utc_reservation_end
+        return self.status == 'active' and is_item_available and is_in_time_range
+
+    def is_expired(self):
+        """判断是否“超期作废”"""
+        now_utc = datetime.utcnow()
+        return self.status == 'expired' or (self.status == 'active' and now_utc - self._utc_reservation_start > timedelta(hours=24))
+
+    def is_conflicted(self):
+        """判断是否因物品未归还导致冲突"""
+        item = self.item
+        return self.status == 'active' and item.status != 'available'
