@@ -113,11 +113,12 @@
 
                         {# 使用物品（用模型is_active()判断，精准控制） #}
                         {% if reservation.is_active() %}
-                            <a href="{{ url_for('reservations.use_reservation', reservation_id=reservation.id) }}"
-                               class="btn btn-sm btn-success"
-                               onclick="return confirm('确定要使用此预约吗？将创建借用记录。')">
-                                使用物品
-                            </a>
+                            <form action="{{ url_for('reservations.use_reservation', reservation_id=reservation.id) }}" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        onclick="return confirm('确定要使用此预约吗？将创建借用记录。')">
+                                    使用物品
+                                </button>
+                            </form>
                         {% endif %}
 
                         {# 取消预约（用模型方法判断可取消状态） #}
