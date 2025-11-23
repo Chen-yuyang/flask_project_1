@@ -1,0 +1,11 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+<p>您好，</p>
+<p>提醒您，您预约的物品即将开始使用：</p>
+<p>物品名称：{{ reservation.item.name }}</p>
+<p>序列号：{{ reservation.item.serial_number }}</p>
+<p>预约开始时间：{{ reservation.reservation_start.strftime('%Y-%m-%d %H:%M') }}</p>
+<p>请您在预约开始时间后尽快前往借用。</p>
+<p>感谢您的使用！</p>
+{% endblock %}

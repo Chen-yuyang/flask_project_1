@@ -1,8 +1,14 @@
+import atexit  # 导入 atexit
+
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
+# 新增：导入APScheduler和os
+from apscheduler.schedulers.background import BackgroundScheduler
+import os
+
 from config import Config
 
 import pytz
@@ -56,6 +62,61 @@ def create_app(config_class=Config):
     # 创建数据库表
     with app.app_context():
         db.create_all()
+
+    # =====================================================================
+    # 【修正】APScheduler 定时任务配置 (单个调度器管理所有任务)
+    # =====================================================================
+    scheduler = None  # 定义一个全局变量来存储调度器实例
+
+    # 仅在非调试模式或主进程中启动调度器
+    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        # 延迟导入任务函数
+        from app.tasks import update_reservation_status, print_test_task # 导入所有任务
+
+        # 创建唯一的后台调度器实例
+        scheduler = BackgroundScheduler()
+
+        # -------------------- 添加任务1: 更新预约状态 (每小时一次) --------------------
+        scheduler.add_job(
+            func=update_reservation_status,
+            args=[app.app_context()],
+            trigger='interval',
+            # hours=1,
+            minutes=1,
+            id='update_reservation_status_task',
+            replace_existing=True,
+        )
+        app.logger.info("已添加任务: update_reservation_status_task (每小时)")
+
+        # -------------------- 添加任务2: 打印测试 (每5秒一次) --------------------
+        # 你可以随时注释掉这部分来停止测试任务
+        scheduler.add_job(
+            func=print_test_task,
+            args=[app.app_context()],
+            trigger='interval',
+            seconds=5,
+            id='test_print_task',
+            replace_existing=True,
+        )
+        app.logger.info("已添加任务: test_print_task (每5秒)")
+
+        # -------------------- 启动调度器 --------------------
+        try:
+            scheduler.start()
+            app.logger.info("APScheduler 调度器已启动。")
+        except Exception as e:
+            app.logger.error(f"启动 APScheduler 失败: {e}")
+
+    # -------------------- 统一的关闭逻辑 --------------------
+    # 使用 atexit 在应用进程退出时关闭调度器
+    def shutdown_scheduler():
+        if scheduler and scheduler.running:
+            app.logger.info("应用正在退出，关闭 APScheduler...")
+            scheduler.shutdown()
+            app.logger.info("APScheduler 已关闭。")
+
+    atexit.register(shutdown_scheduler)
+    # =====================================================================
 
     return app
 

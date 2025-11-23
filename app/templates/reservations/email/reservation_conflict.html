@@ -1,0 +1,10 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+<p>您好，</p>
+<p>您借用的物品 <strong>{{ item.name }}</strong>（编号：{{ item.serial_number }}）已被其他用户预约。</p>
+<p>预约人：{{ reservation.user.username }}</p>
+<p>预约开始时间：{{ reservation.reservation_start.strftime('%Y-%m-%d %H:%M') }}</p>
+<p>请您尽快归还该物品，以免影响其他用户的使用。</p>
+<p>感谢您的配合！</p>
+{% endblock %}

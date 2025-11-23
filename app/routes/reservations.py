@@ -13,67 +13,70 @@ bp = Blueprint('reservations', __name__)
 LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
 
 
-# 辅助函数：更新预约状态（充分使用模型方法）
-def update_reservation_status():
-    """自动更新预约状态（应作为定时任务每小时执行一次）"""
-    now_utc = datetime.utcnow()
-
-    # 1. 待开始(scheduled) → 有效/冲突：到达预约起始时间
-    # 直接筛选status='scheduled'的预约，无需调用is_scheduled方法
-    scheduled_res = Reservation.query.filter_by(status='scheduled').all()
-    for res in scheduled_res:
-        if now_utc >= res._utc_reservation_start:  # 仅判断时间是否到达
-            if res.item.status == 'available':
-                res.status = 'active'  # 物品可用→有效
-            else:
-                res.status = 'conflicted'  # 物品占用→冲突
-                # 发送冲突提醒给上一使用者
-                active_record = Record.query.filter_by(item_id=res.item.id, status='using').first()
-                if active_record and active_record.user:
-                    send_email(
-                        recipient=active_record.user.email,
-                        subject='物品归还提醒',
-                        template='email/reservation_conflict',
-                        item=res.item,
-                        reservation=res
-                    )
-            db.session.commit()
-
-    # 2. 有效(active) → 作废(expired)：超24小时未使用
-    active_res = Reservation.query.filter_by(status='active').all()
-    for res in active_res:
-        if res.is_expired():
-            res.status = 'expired'
-            if res.user:
-                send_email(
-                    recipient=res.user.email,
-                    subject='预约已作废',
-                    template='email/reservation_expired',
-                    reservation=res
-                )
-            db.session.commit()
-
-    # 3. 预约前12小时提醒
-    soon_res = Reservation.query.filter_by(status='scheduled').all()
-    for res in soon_res:
-        # 调用is_scheduled判断是否仍为待开始状态（未到达起始时间）
-        if res.is_scheduled():
-            time_diff = res._utc_reservation_start - now_utc
-            if timedelta(hours=12) >= time_diff > timedelta(hours=11):
-                if res.user:
-                    send_email(
-                        recipient=res.user.email,
-                        subject='预约即将开始',
-                        template='email/reservation_reminder',
-                        reservation=res
-                    )
+# # 辅助函数：更新预约状态（充分使用模型方法）
+# def update_reservation_status():
+#     """自动更新预约状态（应作为定时任务每小时执行一次）"""
+#     now_utc = datetime.utcnow()
+#
+#     # 1. 待开始(scheduled) → 有效/冲突：到达预约起始时间
+#     # 直接筛选status='scheduled'的预约，无需调用is_scheduled方法
+#     scheduled_res = Reservation.query.filter_by(status='scheduled').all()
+#     for res in scheduled_res:
+#         if now_utc >= res._utc_reservation_start:  # 仅判断时间是否到达
+#             if res.item.status == 'available':
+#                 res.status = 'active'  # 物品可用→有效
+#             else:
+#                 res.status = 'conflicted'  # 物品占用→冲突
+#                 # 发送冲突提醒给上一使用者
+#                 active_record = Record.query.filter_by(item_id=res.item.id, status='using').first()
+#                 if active_record and active_record.user:
+#                     # 修改后
+#                     send_email(
+#                         to=active_record.user.email,
+#                         subject='物品归还提醒',
+#                         template='reservations/email/reservation_conflict.html',
+#                         item=res.item,
+#                         reservation=res
+#                     )
+#             db.session.commit()
+#
+#     # 2. 有效(active) → 作废(expired)：超24小时未使用
+#     active_res = Reservation.query.filter_by(status='active').all()
+#     for res in active_res:
+#         if res.is_expired():
+#             res.status = 'expired'
+#             if res.user:
+#                 # 修改后
+#                 send_email(
+#                     to=res.user.email,
+#                     subject='预约已作废',
+#                     template='reservations/email/reservation_expired.html',
+#                     reservation=res
+#                 )
+#             db.session.commit()
+#
+#     # 3. 预约前12小时提醒
+#     soon_res = Reservation.query.filter_by(status='scheduled').all()
+#     for res in soon_res:
+#         # 调用is_scheduled判断是否仍为待开始状态（未到达起始时间）
+#         if res.is_scheduled():
+#             time_diff = res._utc_reservation_start - now_utc
+#             if timedelta(hours=12) >= time_diff > timedelta(hours=11):
+#                 if res.user:
+#                     # 修改后
+#                     send_email(
+#                         to=res.user.email,
+#                         subject='预约即将开始',
+#                         template='reservations/email/reservation_reminder.html',
+#                         reservation=res
+#                     )
 
 
 @bp.route('/my')
 @login_required
 def my_reservations():
     """查看当前用户的预约（支持新状态筛选）"""
-    update_reservation_status()
+    # update_reservation_status()
 
     status = request.args.get('status', '')
     reservations_query = current_user.reservations.order_by(Reservation._utc_reservation_start)
@@ -99,7 +102,7 @@ def all_reservations():
         flash('没有权限查看所有预约记录', 'danger')
         return redirect(url_for('reservations.my_reservations'))
 
-    update_reservation_status()
+    # update_reservation_status()
 
     status = request.args.get('status', '')
     item_id = request.args.get('item_id', '')
@@ -134,7 +137,7 @@ def item_reservations(item_id):
     """查看特定物品的所有预约"""
     item = Item.query.get_or_404(item_id)
     now_local = datetime.now(LOCAL_TIMEZONE)
-    update_reservation_status()
+    # update_reservation_status()
 
     # 权限逻辑
     if current_user.is_admin():

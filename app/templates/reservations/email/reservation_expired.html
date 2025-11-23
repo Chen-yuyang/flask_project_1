@@ -1,0 +1,10 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+<p>您好，</p>
+<p>您预约的物品 <strong>{{ reservation.item.name }}</strong>（编号：{{ reservation.item.serial_number }}）已作废。</p>
+<p>预约时间段：{{ reservation.reservation_start.strftime('%Y-%m-%d %H:%M') }} 至 {{ reservation.reservation_end.strftime('%Y-%m-%d %H:%M') }}</p>
+<p>原因：超过预约起始时间 24 小时未使用。</p>
+<p>如需使用该物品，请重新预约。</p>
+<p>感谢您的理解！</p>
+{% endblock %}
