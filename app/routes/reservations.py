@@ -2,7 +2,7 @@ import pytz
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
-from sqlalchemy import or_
+from sqlalchemy import or_, case, desc
 
 from app import db
 from app.models import Item, Reservation, Record
@@ -13,85 +13,42 @@ bp = Blueprint('reservations', __name__)
 LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
 
 
-# # 辅助函数：更新预约状态（充分使用模型方法）
-# def update_reservation_status():
-#     """自动更新预约状态（应作为定时任务每小时执行一次）"""
-#     now_utc = datetime.utcnow()
-#
-#     # 1. 待开始(scheduled) → 有效/冲突：到达预约起始时间
-#     # 直接筛选status='scheduled'的预约，无需调用is_scheduled方法
-#     scheduled_res = Reservation.query.filter_by(status='scheduled').all()
-#     for res in scheduled_res:
-#         if now_utc >= res._utc_reservation_start:  # 仅判断时间是否到达
-#             if res.item.status == 'available':
-#                 res.status = 'active'  # 物品可用→有效
-#             else:
-#                 res.status = 'conflicted'  # 物品占用→冲突
-#                 # 发送冲突提醒给上一使用者
-#                 active_record = Record.query.filter_by(item_id=res.item.id, status='using').first()
-#                 if active_record and active_record.user:
-#                     # 修改后
-#                     send_email(
-#                         to=active_record.user.email,
-#                         subject='物品归还提醒',
-#                         template='reservations/email/reservation_conflict.html',
-#                         item=res.item,
-#                         reservation=res
-#                     )
-#             db.session.commit()
-#
-#     # 2. 有效(active) → 作废(expired)：超24小时未使用
-#     active_res = Reservation.query.filter_by(status='active').all()
-#     for res in active_res:
-#         if res.is_expired():
-#             res.status = 'expired'
-#             if res.user:
-#                 # 修改后
-#                 send_email(
-#                     to=res.user.email,
-#                     subject='预约已作废',
-#                     template='reservations/email/reservation_expired.html',
-#                     reservation=res
-#                 )
-#             db.session.commit()
-#
-#     # 3. 预约前12小时提醒
-#     soon_res = Reservation.query.filter_by(status='scheduled').all()
-#     for res in soon_res:
-#         # 调用is_scheduled判断是否仍为待开始状态（未到达起始时间）
-#         if res.is_scheduled():
-#             time_diff = res._utc_reservation_start - now_utc
-#             if timedelta(hours=12) >= time_diff > timedelta(hours=11):
-#                 if res.user:
-#                     # 修改后
-#                     send_email(
-#                         to=res.user.email,
-#                         subject='预约即将开始',
-#                         template='reservations/email/reservation_reminder.html',
-#                         reservation=res
-#                     )
-
-
 @bp.route('/my')
 @login_required
 def my_reservations():
-    """查看当前用户的预约（支持新状态筛选）"""
-    # update_reservation_status()
-
+    """查看当前用户的预约（支持状态和物品筛选，按最近预约排序）"""
+    # 获取筛选参数
     status = request.args.get('status', '')
-    reservations_query = current_user.reservations.order_by(Reservation._utc_reservation_start)
+    item_id = request.args.get('item_id', '')
 
-    # 状态筛选（保留原逻辑，查询时仍用status字段）
+    # 构建查询：当前用户的预约
+    reservations_query = current_user.reservations
+
+    # 状态筛选
     if status in ['scheduled', 'active', 'expired', 'cancelled', 'used', 'conflicted']:
         reservations_query = reservations_query.filter(Reservation.status == status)
+
+    # 物品筛选
+    if item_id:
+        reservations_query = reservations_query.filter(Reservation.item_id == item_id)
+
+    # 关键改动：使用数据库原始列 _utc_reservation_start 进行倒序排序
+    # （替换为你模型中实际存储预约时间的列名）
+    reservations_query = reservations_query.order_by(Reservation._utc_reservation_start.desc())
 
     reservations = reservations_query.all()
     now_local = datetime.now(LOCAL_TIMEZONE)
 
     return render_template('reservations/my_reservations.html',
                            reservations=reservations,
-                           now_local=now_local
+                           now_local=now_local,
+                           current_status=status,
+                           current_item_id=item_id
                            )
+
+
+# 确保导入了 User 模型
+from app.models import Reservation, Item, User  # <-- 在这里添加 User
 
 
 @bp.route('/all')
@@ -102,15 +59,15 @@ def all_reservations():
         flash('没有权限查看所有预约记录', 'danger')
         return redirect(url_for('reservations.my_reservations'))
 
-    # update_reservation_status()
-
+    # 获取筛选参数
     status = request.args.get('status', '')
     item_id = request.args.get('item_id', '')
     user_id = request.args.get('user_id', '')
 
+    # 构建查询，并按预约开始时间倒序排序（最近的在前面）
     reservations_query = Reservation.query.order_by(Reservation._utc_reservation_start.desc())
 
-    # 筛选逻辑（查询时用status字段，实例判断用模型方法）
+    # 应用筛选条件
     if status in ['scheduled', 'active', 'expired', 'cancelled', 'used', 'conflicted']:
         reservations_query = reservations_query.filter(Reservation.status == status)
     if item_id:
@@ -118,13 +75,21 @@ def all_reservations():
     if user_id:
         reservations_query = reservations_query.filter(Reservation.user_id == user_id)
 
+    # 执行查询
     reservations = reservations_query.all()
     all_items = Item.query.all()
 
+    # ==================== 关键改动 ====================
+    # 查询所有用户，用于在模板的下拉框中显示
+    all_users = User.query.all()
+    # ==================================================
+
+    # 渲染模板，并将 all_users 传递过去
     return render_template(
         'reservations/all_reservations.html',
         reservations=reservations,
         all_items=all_items,
+        all_users=all_users,  # <-- 将用户列表传递给模板
         current_status=status,
         current_item_id=item_id,
         current_user_id=user_id

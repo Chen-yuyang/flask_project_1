@@ -39,13 +39,13 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('items.all_items') }}">所有物品</a>
                     </li>
-                    {% if current_user.is_admin() %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('records.all_records') }}">所有记录</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('reservations.all_reservations') }}">所有预约</a>
                     </li>
+                    {% if current_user.is_admin() %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin.user_management') }}">用户管理</a>
                     </li>

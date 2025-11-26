@@ -78,8 +78,8 @@
                         <!-- 所有用户（包括管理员）：物品可用时显示“使用/预约” -->
                         {% if item.status == 'available' %}
                         <a href="{{ url_for('records.create', item_id=item.id) }}" class="btn btn-sm btn-success">使用</a>
-                        <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-sm btn-warning">预约</a>
                         {% endif %}
+                        <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-sm btn-warning">预约</a>
 
                         <!-- 仅管理员：额外显示“编辑/删除” -->
                         {% if current_user.is_admin() %}

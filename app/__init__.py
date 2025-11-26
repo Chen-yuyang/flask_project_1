@@ -82,23 +82,24 @@ def create_app(config_class=Config):
             args=[app.app_context()],
             trigger='interval',
             # hours=1,
-            minutes=1,
+            # minutes=1,
+            seconds=5,
             id='update_reservation_status_task',
             replace_existing=True,
         )
-        app.logger.info("已添加任务: update_reservation_status_task (每小时)")
+        app.logger.info("已添加任务: update_reservation_status_task")
 
         # -------------------- 添加任务2: 打印测试 (每5秒一次) --------------------
         # 你可以随时注释掉这部分来停止测试任务
-        scheduler.add_job(
-            func=print_test_task,
-            args=[app.app_context()],
-            trigger='interval',
-            seconds=5,
-            id='test_print_task',
-            replace_existing=True,
-        )
-        app.logger.info("已添加任务: test_print_task (每5秒)")
+        # scheduler.add_job(
+        #     func=print_test_task,
+        #     args=[app.app_context()],
+        #     trigger='interval',
+        #     seconds=5,
+        #     id='test_print_task',
+        #     replace_existing=True,
+        # )
+        # app.logger.info("已添加任务: test_print_task")
 
         # -------------------- 启动调度器 --------------------
         try:
