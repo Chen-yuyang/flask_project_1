@@ -71,7 +71,7 @@ def create_app(config_class=Config):
     # 仅在非调试模式或主进程中启动调度器
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         # 延迟导入任务函数
-        from app.tasks import update_reservation_status, print_test_task # 导入所有任务
+        from app.tasks import update_reservation_status, print_test_task, check_overdue_records  # 导入所有任务
 
         # 创建唯一的后台调度器实例
         scheduler = BackgroundScheduler()
@@ -83,7 +83,7 @@ def create_app(config_class=Config):
             trigger='interval',
             # hours=1,
             # minutes=1,
-            seconds=5,
+            seconds=30,
             id='update_reservation_status_task',
             replace_existing=True,
         )
@@ -100,6 +100,16 @@ def create_app(config_class=Config):
         #     replace_existing=True,
         # )
         # app.logger.info("已添加任务: test_print_task")
+
+        # 逾期记录检查任务（新增）
+        scheduler.add_job(
+            func=check_overdue_records,
+            args=[app.app_context()],
+            trigger='interval',
+            hours=1,  # 和原Timer一样，每24小时执行一次
+            id='check_overdue_records_task',
+            replace_existing=True,
+        )
 
         # -------------------- 启动调度器 --------------------
         try:

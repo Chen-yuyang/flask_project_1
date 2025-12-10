@@ -28,6 +28,7 @@ class ReservationForm(FlaskForm):
     # 验证逻辑保持不变（时区统一为东八区）
     def validate_reservation_end(self, reservation_end):
         if self.reservation_start.data and reservation_end.data:
+            # 直接使用表单传入的时间（已由前端保证是东八区时间）
             start_aware = LOCAL_TIMEZONE.localize(self.reservation_start.data)
             end_aware = LOCAL_TIMEZONE.localize(reservation_end.data)
             current_time = datetime.now(LOCAL_TIMEZONE).replace(second=0, microsecond=0)

@@ -128,16 +128,38 @@ def return_item(record_id):
 @bp.route('/delete/<int:record_id>', methods=['POST'])
 @login_required
 def delete(record_id):
-    """删除使用记录（仅管理员）"""
+    """删除使用记录（仅管理员），删除后返回“所有记录”页面并保留筛选状态"""
+    # 1. 权限检查：仅管理员可执行
     if not current_user.is_admin():
-        flash('没有权限删除记录')
-        return redirect(url_for('records.my_records'))
+        flash('没有权限删除使用记录', 'danger')
+        # 无权限时，同样返回“所有记录”页面，并携带原筛选参数
+        return redirect(url_for(
+            'records.all_records',
+            status=request.args.get('status')
+        ))
 
+    # 2. 查询要删除的记录
     record = Record.query.get_or_404(record_id)
-    item_id = record.item_id
 
+    # 3. 记录删除信息（用于日志或提示，可选）
+    item_name = record.item.name
+    user_username = record.user.username
+
+    # 4. 执行删除操作
     db.session.delete(record)
     db.session.commit()
 
-    flash('使用记录已删除')
-    return redirect(url_for('records.item_records', item_id=item_id))
+    # 5. 记录操作日志（可选，但推荐）
+    # current_app.logger.info(
+    #     f"管理员 {current_user.username} 删除了使用记录: "
+    #     f"物品[{item_name}], 使用人[{user_username}]"
+    # )
+
+    # 6. 发送成功提示并跳转
+    flash(f'成功删除物品「{item_name}」的使用记录', 'success')
+
+    # 关键改动：重定向到“所有记录”页面，并将当前的筛选状态（status）传递回去
+    return redirect(url_for(
+        'records.all_records',
+        status=request.args.get('status')  # 保留原筛选状态
+    ))

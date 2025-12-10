@@ -218,3 +218,41 @@ def use_reservation(reservation_id):
 
     flash('预约已转为使用状态，请在借用记录中完成登记', 'success')
     return redirect(url_for('records.create', item_id=reservation.item_id))
+
+
+@bp.route('/delete/<int:reservation_id>', methods=['POST'])
+@login_required
+def delete(reservation_id):
+    """删除预约（管理员专属，永久删除记录）"""
+    # 仅管理员可执行
+    if not current_user.is_admin():
+        flash('没有权限执行此操作', 'danger')
+        return redirect(url_for('reservations.all_reservations'))
+
+    reservation = Reservation.query.get_or_404(reservation_id)
+
+    # 记录预约信息（用于日志或通知）
+    item_name = reservation.item.name
+    username = reservation.user.username
+    reservation_time = f"{reservation.reservation_start.strftime('%Y-%m-%d %H:%M')} 至 {reservation.reservation_end.strftime('%Y-%m-%d %H:%M')}"
+
+    # 永久删除记录
+    db.session.delete(reservation)
+    db.session.commit()
+
+    # 记录操作日志（可选）
+    # current_app.logger.info(
+    #     f"管理员 {current_user.username} 删除了预约记录：物品[{item_name}]，预约人[{username}]，时间段[{reservation_time}]")
+
+    # 可选：发送邮件通知预约人（根据需求决定是否开启）
+    # if reservation.user:
+    #     send_email(
+    #         to=reservation.user.email,
+    #         subject='预约记录已被删除',
+    #         template='reservations/email/reservation_deleted.html',
+    #         reservation=reservation,
+    #         operator=current_user.username
+    #     )
+
+    flash(f'成功删除预约记录：物品「{item_name}」（预约人：{username}）', 'success')
+    return redirect(url_for('reservations.all_reservations'))

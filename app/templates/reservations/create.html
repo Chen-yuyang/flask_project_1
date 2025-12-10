@@ -75,19 +75,44 @@
     </div>
 </div>
 
-<!-- JavaScript：强制东八区时间 + 实时更新 -->
+<!-- 替换原有的JavaScript部分 -->
 <script>
-  // 更新预约开始时间为东八区当前时间（仅到分钟，秒数强制为00）
-  function updateStartTime() {
-    const now = new Date();
-    now.setSeconds(0, 0); // 秒数固定为00（但不显示）
-    const timezoneOffset = now.getTimezoneOffset();
-    now.setMinutes(now.getMinutes() - timezoneOffset); // 转换为UTC时间（datetime-local默认解析为UTC）
-    const formatted = now.toISOString().slice(0, 16);  // 格式：2025-11-05T16:17
-    document.getElementById('reservation_start').value = formatted;
+  // 正确设置东八区当前时间为默认值（仅在输入框为空时设置）
+  function setDefaultTimes() {
+    // 获取东八区当前时间
+    const shanghaiTime = new Date(new Date().toLocaleString('en-US', {
+      timeZone: 'Asia/Shanghai'
+    }));
+    shanghaiTime.setSeconds(0, 0); // 秒/毫秒置为0（精确到分钟）
+
+    // 构造datetime-local需要的格式：YYYY-MM-DDTHH:MM
+    const formatTime = (date) => {
+      return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+      ].join('-') + 'T' + [
+        String(date.getHours()).padStart(2, '0'),
+        String(date.getMinutes()).padStart(2, '0')
+      ].join(':');
+    };
+
+    // 设置开始时间默认值（仅为空时设置）
+    const startInput = document.getElementById('reservation_start');
+    if (!startInput.value) {
+      startInput.value = formatTime(shanghaiTime);
+    }
+
+    // 设置结束时间默认值（开始时间+1小时，仅为空时设置）
+    const endInput = document.querySelector('[name="reservation_end"]');
+    if (!endInput.value && startInput.value) {
+      const endTime = new Date(startInput.value);
+      endTime.setHours(endTime.getHours() + 1);
+      endInput.value = formatTime(endTime);
+    }
   }
 
-  // 实时显示东八区时间（包含秒数，仅用于提示）
+  // 实时显示东八区时间（仅用于提示，不影响表单值）
   function updateCurrentTime() {
     const formatter = new Intl.DateTimeFormat('zh-CN', {
       timeZone: 'Asia/Shanghai',
@@ -99,25 +124,17 @@
       second: '2-digit',
       hour12: false
     });
-    const parts = formatter.formatToParts(new Date());
-    const formatted = parts.reduce((acc, part) => {
-      if (part.type !== 'literal') acc[part.type] = part.value;
-      return acc;
-    }, {});
-    const timeStr = `${formatted.year}/${formatted.month}/${formatted.day} ${formatted.hour}:${formatted.minute}:${formatted.second}`;
+    const timeStr = formatter.format(new Date());
     document.getElementById('current-time').textContent = `当前实时时间：${timeStr}`;
   }
 
   window.onload = function() {
-    updateStartTime();
+    setDefaultTimes(); // 页面加载时设置一次默认值
     updateCurrentTime();
-    setInterval(updateStartTime, 60000); // 每分钟更新一次（仅到分钟，无需每秒更新）
-    setInterval(updateCurrentTime, 1000); // 每秒更新时间提示（包含秒数）
+    setInterval(updateCurrentTime, 1000); // 仅更新时间提示（不修改表单）
   };
 
-  // 提交前最后一次更新
-  document.getElementById('reservation-form').addEventListener('submit', function() {
-    updateStartTime();
-  });
+  // 移除“提交时更新时间”的逻辑！！！
+  // （之前的submit事件监听会覆盖用户输入，必须删除）
 </script>
 {% endblock %}

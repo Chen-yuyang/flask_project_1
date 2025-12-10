@@ -3,6 +3,8 @@ from app import db
 from app.models import Reservation, Record
 from app.email import send_email
 
+from app.email import send_overdue_reminder
+
 
 def update_reservation_status(app_context):
     """更新预约状态的定时任务"""
@@ -64,3 +66,17 @@ def print_test_task(app_context):
         # 用 logger 打印（比 print 更规范，且会包含时间戳）
         current_app.logger.info(f"===== 测试任务执行中 =====")
         current_app.logger.info(f"测试任务：当前UTC时间 {datetime.utcnow()}")
+
+
+def check_overdue_records(app_context):
+    """检查逾期记录并发送提醒（修复数据库字段引用）"""
+    with app_context:
+        # 关键修改：使用数据库实际存储的 _utc_start_time 字段（而非 property 的 start_time）
+        overdue_records = Record.query.filter(
+            Record.status == 'using',
+            # 直接用数据库里的 UTC 时间字段比较，与模型的 is_overdue 逻辑一致
+            Record._utc_start_time < datetime.utcnow() - timedelta(days=7)
+        ).all()
+
+        for record in overdue_records:
+            send_overdue_reminder(record)
