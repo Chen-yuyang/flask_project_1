@@ -1,0 +1,35 @@
+{# 定义分页宏，接收 pagination 对象和端点 endpoint #}
+{% macro render_pagination(pagination, endpoint) %}
+  {% if pagination.pages > 1 %}
+  <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+      {# 上一页 #}
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for(endpoint, page=pagination.prev_num, **kwargs) }}" tabindex="-1">上一页</a>
+      </li>
+
+      {# 页码逻辑：为了不显示太多页码，这里做一个简单的循环 #}
+      {% for page in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page %}
+          {% if page != pagination.page %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for(endpoint, page=page, **kwargs) }}">{{ page }}</a>
+            </li>
+          {% else %}
+            <li class="page-item active">
+              <span class="page-link">{{ page }}</span>
+            </li>
+          {% endif %}
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+      {% endfor %}
+
+      {# 下一页 #}
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for(endpoint, page=pagination.next_num, **kwargs) }}">下一页</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+{% endmacro %}

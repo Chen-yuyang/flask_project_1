@@ -12,24 +12,33 @@ bp = Blueprint('records', __name__)
 @bp.route('/my')
 @login_required
 def my_records():
-    """查看当前用户的使用记录"""
+    """查看当前用户的使用记录（分页）"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # 每页显示10条
+
     status = request.args.get('status', '')
     records_query = current_user.records.order_by(Record._utc_start_time.desc())
 
     if status:
         records_query = records_query.filter(Record.status == status)
 
-    records = records_query.all()
-    return render_template('records/my_records.html', records=records)
+    # 使用 paginate 代替 all
+    pagination = records_query.paginate(page=page, per_page=per_page, error_out=False)
+    records = pagination.items
+
+    return render_template('records/my_records.html', records=records, pagination=pagination)
 
 
 @bp.route('/all')
 @login_required
 def all_records():
-    """管理员查看所有使用记录"""
+    """管理员查看所有使用记录（分页）"""
     if not current_user.is_admin():
         flash('没有权限查看所有记录')
         return redirect(url_for('records.my_records'))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # 管理员界面每页显示更多
 
     user_id = request.args.get('user_id', '')
     item_id = request.args.get('item_id', '')
@@ -44,17 +53,27 @@ def all_records():
     if status:
         records_query = records_query.filter(Record.status == status)
 
-    records = records_query.all()
-    return render_template('records/all_records.html', records=records)
+    # 使用 paginate
+    pagination = records_query.paginate(page=page, per_page=per_page, error_out=False)
+    records = pagination.items
+
+    return render_template('records/all_records.html', records=records, pagination=pagination)
 
 
 @bp.route('/item/<int:item_id>')
 @login_required
 def item_records(item_id):
-    """查看特定物品的使用记录"""
+    """查看特定物品的使用记录（分页）"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
     item = Item.query.get_or_404(item_id)
-    records = Record.query.filter_by(item_id=item_id).order_by(Record._utc_start_time.desc()).all()
-    return render_template('records/item_records.html', records=records, item=item)
+    records_query = Record.query.filter_by(item_id=item_id).order_by(Record._utc_start_time.desc())
+
+    pagination = records_query.paginate(page=page, per_page=per_page, error_out=False)
+    records = pagination.items
+
+    return render_template('records/item_records.html', records=records, item=item, pagination=pagination)
 
 
 @bp.route('/create/<int:item_id>', methods=['GET', 'POST'])
@@ -132,34 +151,24 @@ def delete(record_id):
     # 1. 权限检查：仅管理员可执行
     if not current_user.is_admin():
         flash('没有权限删除使用记录', 'danger')
-        # 无权限时，同样返回“所有记录”页面，并携带原筛选参数
-        return redirect(url_for(
-            'records.all_records',
-            status=request.args.get('status')
-        ))
+        return redirect(
+            url_for('records.all_records', status=request.args.get('status'), page=request.args.get('page')))
 
     # 2. 查询要删除的记录
     record = Record.query.get_or_404(record_id)
 
     # 3. 记录删除信息（用于日志或提示，可选）
     item_name = record.item.name
-    user_username = record.user.username
 
     # 4. 执行删除操作
     db.session.delete(record)
     db.session.commit()
 
-    # 5. 记录操作日志（可选，但推荐）
-    # current_app.logger.info(
-    #     f"管理员 {current_user.username} 删除了使用记录: "
-    #     f"物品[{item_name}], 使用人[{user_username}]"
-    # )
-
-    # 6. 发送成功提示并跳转
     flash(f'成功删除物品「{item_name}」的使用记录', 'success')
 
     # 关键改动：重定向到“所有记录”页面，并将当前的筛选状态（status）传递回去
     return redirect(url_for(
         'records.all_records',
-        status=request.args.get('status')  # 保留原筛选状态
+        status=request.args.get('status'),
+        page=request.args.get('page')
     ))
