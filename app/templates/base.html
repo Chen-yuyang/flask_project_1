@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}物品管理系统{% endblock %}</title>
-    <!-- 添加网站图标引用 -->
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <!-- 引入Bootstrap样式 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- 引入Bootstrap Icons（用于菜单图标） -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         .sidebar { height: 100vh; position: sticky; top: 0; overflow-y: auto; }
@@ -23,7 +20,6 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('main.index') }}">物品管理系统</a>
@@ -59,7 +55,6 @@
                     {% endif %}
                 </ul>
 
-                <!-- 全局搜索 -->
                 {% if current_user.is_authenticated %}
                 <form class="d-flex me-3" action="{{ url_for('main.global_search') }}" method="get">
                     <input class="form-control me-2"
@@ -72,7 +67,6 @@
                 </form>
                 {% endif %}
 
-                <!-- 用户菜单 -->
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
@@ -103,7 +97,6 @@
 
     <div class="container-fluid">
         <div class="row">
-            <!-- 侧边栏（仅登录用户可见） -->
             {% if current_user.is_authenticated %}
             <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse show" id="sidebarMenu">
                 <div class="position-sticky pt-3">
@@ -111,19 +104,21 @@
                         <span>空间导航</span>
                     </h6>
                     <ul class="nav flex-column">
-                        <!-- 所有空间入口 -->
                         <li class="nav-item">
-                            <a class="nav-link px-3" href="{{ url_for('spaces.index') }}">
-                                <i class="bi bi-folder2 me-2"></i> 所有空间
-                            </a>
+                            <div class="d-flex align-items-center">
+                                <span class="btn btn-link nav-link p-0 me-2 invisible">
+                                    <i class="bi bi-chevron-down small"></i>
+                                </span>
+                                <a class="nav-link px-2 flex-grow-1" href="{{ url_for('spaces.index') }}">
+                                    <i class="bi bi-folder2 me-2"></i> 所有空间
+                                </a>
+                            </div>
                         </li>
 
-                        <!-- 递归渲染多级空间 -->
                         {% with spaces = get_space_hierarchy() %}
                             {% for item in spaces recursive %}
                             <li class="nav-item">
                                 {% if item.children %}
-                                <!-- 有子空间：折叠按钮 + 跳转链接 -->
                                 <div class="d-flex align-items-center">
                                     <button
                                         class="btn btn-link nav-link p-0 me-2 space-toggle"
@@ -138,18 +133,23 @@
                                         <i class="bi bi-folder me-2"></i> {{ item.space.name }}
                                     </a>
                                 </div>
-                                <!-- 子空间折叠容器 -->
+
                                 <div id="spaceCollapse-{{ item.space.id }}" class="collapse show ms-4">
                                     <ul class="nav flex-column">
                                         {{ loop(item.children) }}
                                     </ul>
                                 </div>
+
                                 {% else %}
-                                <!-- 无子空间：直接跳转 -->
-                                <a class="nav-link px-3"
-                                   href="{{ url_for('spaces.view', id=item.space.id) }}">
-                                    <i class="bi bi-folder2-open me-2"></i> {{ item.space.name }}
-                                </a>
+                                <div class="d-flex align-items-center">
+                                    <span class="btn btn-link nav-link p-0 me-2 invisible">
+                                        <i class="bi bi-chevron-down small"></i>
+                                    </span>
+                                    <a class="nav-link px-2 flex-grow-1"
+                                       href="{{ url_for('spaces.view', id=item.space.id) }}">
+                                        <i class="bi bi-folder2-open me-2"></i> {{ item.space.name }}
+                                    </a>
+                                </div>
                                 {% endif %}
                             </li>
                             {% endfor %}
@@ -159,42 +159,7 @@
             </div>
             {% endif %}
 
-            <!-- 状态持久化脚本（已注释） -->
-{#            <script>#}
-{#            document.addEventListener('DOMContentLoaded', function() {#}
-{#                // 1. 恢复展开状态#}
-{#                const spaceToggles = document.querySelectorAll('.space-toggle');#}
-{#                spaceToggles.forEach(toggle => {#}
-{#                    const spaceId = toggle.getAttribute('data-space-id');#}
-{#                    const isExpanded = localStorage.getItem(`spaceExpanded_${spaceId}`) === 'true';#}
-{#                    const collapseTarget = document.getElementById(`spaceCollapse-${spaceId}`);#}
-{##}
-{#                    if (isExpanded && collapseTarget) {#}
-{#                        const bsCollapse = new bootstrap.Collapse(collapseTarget, { toggle: false });#}
-{#                        bsCollapse.show();#}
-{#                        toggle.querySelector('i').classList.remove('bi-chevron-down');#}
-{#                        toggle.querySelector('i').classList.add('bi-chevron-up');#}
-{#                    }#}
-{#                });#}
-{##}
-{#                // 2. 保存展开状态#}
-{#                spaceToggles.forEach(toggle => {#}
-{#                    toggle.addEventListener('click', function() {#}
-{#                        const spaceId = this.getAttribute('data-space-id');#}
-{#                        const collapseTarget = document.getElementById(`spaceCollapse-${spaceId}`);#}
-{#                        const isExpanded = collapseTarget.classList.contains('show');#}
-{##}
-{#                        localStorage.setItem(`spaceExpanded_${spaceId}`, !isExpanded);#}
-{#                        this.querySelector('i').classList.toggle('bi-chevron-down');#}
-{#                        this.querySelector('i').classList.toggle('bi-chevron-up');#}
-{#                    });#}
-{#                });#}
-{#            });#}
-{#            </script>#}
-
-            <!-- 主内容区 -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 content">
-                <!-- 消息提示 -->
+            <main class="{% if current_user.is_authenticated %}col-md-9 ms-sm-auto col-lg-10{% else %}col-12{% endif %} px-md-4 content">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                 {% for category, message in messages %}
@@ -211,7 +176,6 @@
         </div>
     </div>
 
-    <!-- 引入Bootstrap脚本 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}
 </body>
