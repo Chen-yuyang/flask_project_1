@@ -4,12 +4,12 @@
 {% block title %}我的使用记录{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
+<div class="row mb-4 align-items-center">
     <div class="col-md-8">
         <h1>我的使用记录</h1>
     </div>
     <div class="col-md-4 text-end">
-        <div class="btn-group">
+        <div class="btn-group shadow-sm">
             <a href="{{ url_for('records.my_records') }}"
                class="btn btn-outline-primary {% if not request.args.get('status') %}active{% endif %}">全部</a>
             <a href="{{ url_for('records.my_records', status='using') }}"
@@ -21,23 +21,27 @@
 </div>
 
 {% if records %}
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
-                    <th>物品</th>
-                    <th>开始时间</th>
-                    <th>归还时间</th>
-                    <th>使用位置</th>
-                    <th>状态</th>
-                    <th>操作</th>
+                    <th scope="col" class="text-center" style="width: 60px;">序号</th>
+                    <th scope="col">物品</th>
+                    <th scope="col">开始时间</th>
+                    <th scope="col">归还时间</th>
+                    <th scope="col">使用位置</th>
+                    <th scope="col">状态</th>
+                    <th scope="col">操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for record in records %}
                 <tr>
+                    <td class="text-center text-muted">
+                        {{ (pagination.page - 1) * pagination.per_page + loop.index }}
+                    </td>
                     <td>
-                        <a href="{{ url_for('items.view', id=record.item_id) }}" class="text-decoration-none">
+                        <a href="{{ url_for('items.view', id=record.item_id) }}" class="fw-bold text-decoration-none">
                             {{ record.item.name }}
                         </a>
                     </td>
@@ -46,21 +50,21 @@
                         {% if record.return_time %}
                             {{ record.return_time.strftime('%Y-%m-%d %H:%M') }}
                         {% else %}
-                            -
+                            <span class="text-muted">-</span>
                         {% endif %}
                     </td>
                     <td>{{ record.usage_location or '未记录' }}</td>
                     <td>
                         {% if record.status == 'using' %}
-                            <span class="badge bg-primary">使用中</span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary">使用中</span>
                         {% else %}
-                            <span class="badge bg-secondary">已归还</span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary">已归还</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if record.status == 'using' %}
                             <a href="{{ url_for('records.return_item', record_id=record.id) }}"
-                               class="btn btn-sm btn-warning">归还</a>
+                               class="btn btn-sm btn-warning text-white shadow-sm">归还</a>
                         {% endif %}
                     </td>
                 </tr>
@@ -69,13 +73,12 @@
         </table>
     </div>
 
-    {# 调用分页宏，保留当前的 status 参数 #}
     <div class="mt-4">
         {{ macros.render_pagination(pagination, 'records.my_records', status=request.args.get('status')) }}
     </div>
 
 {% else %}
-    <div class="alert alert-info">
+    <div class="alert alert-info shadow-sm border-0">
         没有找到相关的使用记录。
     </div>
 {% endif %}
