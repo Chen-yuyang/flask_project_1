@@ -11,22 +11,45 @@
 <!-- 筛选表单 -->
 <div class="card mb-4 border-0 shadow-sm">
     <div class="card-body bg-light rounded">
-        <form method="get" class="row g-3">
+        <form method="get" class="row g-3 align-items-end">
+            <!-- 用户名筛选 -->
             <div class="col-md-3">
-                <input type="text" name="user_id" class="form-control" placeholder="用户ID" value="{{ request.args.get('user_id', '') }}">
+                <label class="form-label text-muted small mb-1">用户名</label>
+                <input type="text" name="username" class="form-control" placeholder="搜索用户..."
+                       value="{{ request.args.get('username', '') }}">
             </div>
+
+            <!-- 物品名筛选 -->
             <div class="col-md-3">
-                <input type="text" name="item_id" class="form-control" placeholder="物品ID" value="{{ request.args.get('item_id', '') }}">
+                <label class="form-label text-muted small mb-1">物品名称</label>
+                <input type="text" name="item_name" class="form-control" placeholder="搜索物品..."
+                       value="{{ request.args.get('item_name', '') }}">
             </div>
-            <div class="col-md-3">
+
+            <!-- 状态筛选 -->
+            <div class="col-md-2">
+                <label class="form-label text-muted small mb-1">状态</label>
                 <select name="status" class="form-select">
                     <option value="">所有状态</option>
                     <option value="using" {% if request.args.get('status') == 'using' %}selected{% endif %}>使用中</option>
                     <option value="returned" {% if request.args.get('status') == 'returned' %}selected{% endif %}>已归还</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary w-100">筛选</button>
+
+            <!-- 筛选按钮 -->
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-filter"></i> 筛选
+                </button>
+            </div>
+
+            <!-- 重置链接 -->
+            <div class="col-md-2">
+                {% if request.args.get('username') or request.args.get('item_name') or request.args.get('status') %}
+                <a href="{{ url_for('records.all_records') }}" class="btn btn-outline-secondary w-100 border-0">
+                    <i class="bi bi-x-circle"></i> 重置
+                </a>
+                {% endif %}
             </div>
         </form>
     </div>
@@ -37,29 +60,32 @@
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
+                    <!-- 修改：标题改为“序号” -->
                     <th scope="col" class="text-center" style="width: 80px;">序号</th>
-                    <th scope="col">物品</th>
                     <th scope="col">用户</th>
+                    <th scope="col">物品</th>
                     <th scope="col">开始时间</th>
                     <th scope="col">归还时间</th>
                     <th scope="col">状态</th>
-                    <th scope="col">操作</th>
+                    <th scope="col" class="text-end">操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for record in records %}
                 <tr>
-                    <!-- 序号计算公式 -->
+                    <!-- 修改：使用分页公式计算连续序号 (页码-1)*每页数量 + 当前页索引 -->
                     <td class="text-center fw-bold text-secondary">
                         {{ (pagination.page - 1) * pagination.per_page + loop.index }}
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-person me-1"></i>{{ record.user.username }}
+                        </span>
                     </td>
                     <td>
                         <a href="{{ url_for('items.view', id=record.item_id) }}" class="text-decoration-none fw-semibold">
                             {{ record.item.name }}
                         </a>
-                    </td>
-                    <td>
-                        <span class="badge bg-light text-dark border">{{ record.user.username }}</span>
                     </td>
                     <td>{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>
@@ -71,14 +97,14 @@
                     </td>
                     <td>
                         {% if record.status == 'using' %}
-                            <span class="badge bg-primary bg-opacity-10 text-primary px-3">使用中</span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary">使用中</span>
                         {% else %}
-                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-3">已归还</span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary">已归还</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <form action="{{ url_for('records.delete', record_id=record.id, page=pagination.page, status=request.args.get('status')) }}" method="post" onsubmit="return confirm('确定要删除这条记录吗？');" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="删除">
+                    <td class="text-end">
+                        <form action="{{ url_for('records.delete', record_id=record.id, username=request.args.get('username'), item_name=request.args.get('item_name'), status=request.args.get('status'), page=pagination.page) }}" method="post" onsubmit="return confirm('确定要删除这条记录吗？这不会影响物品当前的状态。');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-trash"></i> 删除
                             </button>
                         </form>
@@ -89,18 +115,12 @@
         </table>
     </div>
 
-    {# 渲染分页 #}
     <div class="mt-4">
-        {{ macros.render_pagination(pagination, 'records.all_records',
-            user_id=request.args.get('user_id'),
-            item_id=request.args.get('item_id'),
-            status=request.args.get('status')
-        ) }}
+        {{ macros.render_pagination(pagination, 'records.all_records', username=request.args.get('username'), item_name=request.args.get('item_name'), status=request.args.get('status')) }}
     </div>
-
 {% else %}
-    <div class="alert alert-warning border-0 shadow-sm">
-        没有找到符合条件的记录。
+    <div class="alert alert-info border-0 shadow-sm">
+        <i class="bi bi-info-circle me-2"></i> 没有找到符合条件的记录。
     </div>
 {% endif %}
 {% endblock %}

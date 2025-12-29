@@ -3,8 +3,8 @@ from flask_login import login_required, current_user
 from datetime import datetime
 
 from app import db
-from app.models import Item, Record, Space
 from app.forms.record_forms import RecordCreateForm, RecordReturnForm
+from app.models import Item, Record, Space, User
 
 bp = Blueprint('records', __name__)
 
@@ -17,10 +17,20 @@ def my_records():
     per_page = 10  # 每页显示10条
 
     status = request.args.get('status', '')
-    records_query = current_user.records.order_by(Record._utc_start_time.desc())
+    item_name = request.args.get('item_name', '').strip()
 
+    # 基础查询：当前用户的记录
+    records_query = current_user.records
+
+    # 筛选：物品名称（模糊查询）
+    if item_name:
+        records_query = records_query.join(Item).filter(Item.name.ilike(f'%{item_name}%'))
+
+    # 筛选：状态
     if status:
         records_query = records_query.filter(Record.status == status)
+
+    records_query = records_query.order_by(Record._utc_start_time.desc())
 
     # 使用 paginate 代替 all
     pagination = records_query.paginate(page=page, per_page=per_page, error_out=False)
@@ -40,18 +50,26 @@ def all_records():
     page = request.args.get('page', 1, type=int)
     per_page = 15  # 管理员界面每页显示更多
 
-    user_id = request.args.get('user_id', '')
-    item_id = request.args.get('item_id', '')
+    # 获取筛选参数
+    username = request.args.get('username', '').strip()
+    item_name = request.args.get('item_name', '').strip()
     status = request.args.get('status', '')
 
-    records_query = Record.query.order_by(Record._utc_start_time.desc())
+    records_query = Record.query
 
-    if user_id:
-        records_query = records_query.filter(Record.user_id == user_id)
-    if item_id:
-        records_query = records_query.filter(Record.item_id == item_id)
+    # 联表查询：用户名
+    if username:
+        records_query = records_query.join(User).filter(User.username.ilike(f'%{username}%'))
+
+    # 联表查询：物品名
+    if item_name:
+        records_query = records_query.join(Item).filter(Item.name.ilike(f'%{item_name}%'))
+
+    # 筛选：状态
     if status:
         records_query = records_query.filter(Record.status == status)
+
+    records_query = records_query.order_by(Record._utc_start_time.desc())
 
     # 使用 paginate
     pagination = records_query.paginate(page=page, per_page=per_page, error_out=False)
@@ -67,8 +85,21 @@ def item_records(item_id):
     page = request.args.get('page', 1, type=int)
     per_page = 10
 
+    username = request.args.get('username', '').strip()
+    status = request.args.get('status', '')
+
     item = Item.query.get_or_404(item_id)
-    records_query = Record.query.filter_by(item_id=item_id).order_by(Record._utc_start_time.desc())
+    records_query = Record.query.filter_by(item_id=item_id)
+
+    # 筛选：用户名
+    if username:
+        records_query = records_query.join(User).filter(User.username.ilike(f'%{username}%'))
+
+    # 筛选：状态（虽然通常看物品记录不太需要筛选状态，但保留功能更灵活）
+    if status:
+        records_query = records_query.filter(Record.status == status)
+
+    records_query = records_query.order_by(Record._utc_start_time.desc())
 
     pagination = records_query.paginate(page=page, per_page=per_page, error_out=False)
     records = pagination.items
@@ -166,9 +197,11 @@ def delete(record_id):
 
     flash(f'成功删除物品「{item_name}」的使用记录', 'success')
 
-    # 关键改动：重定向到“所有记录”页面，并将当前的筛选状态（status）传递回去
+    # 关键改动：重定向到“所有记录”页面，并将当前的筛选状态传递回去
     return redirect(url_for(
         'records.all_records',
         status=request.args.get('status'),
+        username=request.args.get('username'),
+        item_name=request.args.get('item_name'),
         page=request.args.get('page')
     ))
