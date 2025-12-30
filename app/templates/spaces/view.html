@@ -4,63 +4,78 @@
 
 {% block content %}
 <!-- 空间信息与操作 -->
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>
-        <h1>{{ space.name }}</h1>
-        <p class="text-muted">路径：{{ space.get_path() }}</p>
+        <h1 class="h2 fw-bold text-dark mb-1">{{ space.name }}</h1>
+        <p class="text-muted mb-0 d-flex align-items-center">
+            <i class="bi bi-geo-alt me-1"></i> 路径：{{ space.get_path() }}
+        </p>
     </div>
     <div class="d-flex gap-2">
         <!-- 空间内搜索按钮 -->
-        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#searchCollapse">
-            <i class="bi bi-search"></i> 搜索物品
+        <button class="btn btn-outline-secondary shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#searchCollapse" aria-expanded="false">
+            <i class="bi bi-search me-1"></i> 搜索物品
         </button>
         <!-- 管理员操作 -->
         {% if current_user.is_admin() %}
-        <a href="{{ url_for('spaces.create', parent_id=space.id) }}" class="btn btn-secondary">
-            <i class="bi bi-plus-circle"></i> 添加子空间
-        </a>
-        <a href="{{ url_for('items.create', space_id=space.id) }}" class="btn btn-success">
-            <i class="bi bi-box-seam"></i> 添加物品
-        </a>
-        <a href="{{ url_for('spaces.edit', id=space.id) }}" class="btn btn-primary">
-            <i class="bi bi-pencil"></i> 编辑空间
-        </a>
+        <div class="btn-group shadow-sm">
+            <a href="{{ url_for('spaces.create', parent_id=space.id) }}" class="btn btn-light border text-secondary">
+                <i class="bi bi-folder-plus"></i> 子空间
+            </a>
+            <a href="{{ url_for('spaces.edit', id=space.id) }}" class="btn btn-light border text-secondary">
+                <i class="bi bi-pencil me-1"></i> 编辑
+            </a>
+            <a href="{{ url_for('items.create', space_id=space.id) }}" class="btn btn-primary">
+                <i class="bi bi-box-seam me-1"></i> 添加物品
+            </a>
+        </div>
         {% endif %}
     </div>
 </div>
 
-<!-- 空间内搜索表单 -->
+<!-- 空间内搜索表单 (折叠区域) -->
 <div class="collapse mb-4" id="searchCollapse">
-    <div class="card card-body shadow">
-        <form action="{{ url_for('spaces.search', id=space.id) }}" method="post">
-            <div class="input-group">
-                <input type="text" class="form-control" name="query" placeholder="搜索物品名称/功能/编号..." value="{{ request.args.get('query', '') }}">
-                <button class="btn btn-primary" type="submit">搜索</button>
-            </div>
-        </form>
+    <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary">
+        <div class="card-body p-4">
+            <form action="{{ url_for('spaces.search', id=space.id) }}" method="post">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0 ps-0" name="query"
+                           placeholder="在此空间内搜索物品名称 / 功能 / 编号..."
+                           value="{{ request.args.get('query', '') }}">
+                    <button class="btn btn-primary px-4" type="submit">搜索</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
 <!-- 子空间区域 -->
-<div class="mb-6">
-    <h2 class="border-bottom pb-2">子空间 <span class="badge bg-secondary">{{ subspaces|length }}</span></h2>
+<div class="mb-5">
+    <div class="d-flex align-items-center mb-3">
+        <h5 class="fw-bold text-dark mb-0 me-2">子空间</h5>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">{{ subspaces|length }}</span>
+    </div>
+
     {% if subspaces %}
-    <div class="row gap-3 mt-3">
+    <div class="row g-3">
         {% for item in subspaces %}
-        <div class="col-md-4">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h5 class="card-title">{{ item.space.name }}</h5>
-                    <p class="card-text">
-                        子空间：{{ item.children|length }} 个<br>
-                        物品：{{ item.space.items.count() }} 个
-                    </p>
-                    <div class="d-flex gap-2">
-                        <a href="{{ url_for('spaces.view', id=item.space.id) }}" class="btn btn-sm btn-outline-primary flex-grow-1">查看</a>
-                        {% if current_user.is_admin() %}
-                        <a href="{{ url_for('spaces.create', parent_id=item.space.id) }}" class="btn btn-sm btn-outline-secondary flex-grow-1">添加子空间</a>
-                        <a href="{{ url_for('spaces.edit', id=item.space.id) }}" class="btn btn-sm btn-outline-success flex-grow-1">编辑</a>
-                        {% endif %}
+        <div class="col-md-4 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4 hover-shadow transition-hover bg-body-tertiary">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title fw-bold text-dark mb-0 text-truncate" title="{{ item.space.name }}">
+                            <i class="bi bi-folder2 text-warning me-2"></i>{{ item.space.name }}
+                        </h6>
+                    </div>
+                    <div class="mt-auto pt-3">
+                        <div class="d-flex justify-content-between text-muted small mb-3">
+                            <span><i class="bi bi-layers me-1"></i>{{ item.children|length }} 子空间</span>
+                            <span><i class="bi bi-box me-1"></i>{{ item.space.items.count() }} 物品</span>
+                        </div>
+                        <a href="{{ url_for('spaces.view', id=item.space.id) }}" class="btn btn-sm btn-outline-primary w-100 rounded-pill fw-medium">
+                            进入空间
+                        </a>
                     </div>
                 </div>
             </div>
@@ -68,99 +83,140 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info mt-3">
-        该空间暂无子空间
-        {% if current_user.is_admin() %}
-        <a href="{{ url_for('spaces.create', parent_id=space.id) }}" class="alert-link">添加子空间</a>
-        {% endif %}
+    <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary py-3 text-center">
+        <p class="text-muted small mb-0">此空间下暂无子空间</p>
     </div>
     {% endif %}
 </div>
 
 <!-- 物品区域 -->
 <div>
-    <h2 class="border-bottom pb-2">物品 <span class="badge bg-secondary">{{ items|length }}</span></h2>
+    <div class="d-flex align-items-center mb-3">
+        <h5 class="fw-bold text-dark mb-0 me-2">物品列表</h5>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">{{ items|length }}</span>
+    </div>
+
     {% if items %}
-    <div class="table-responsive mt-3">
-        <table class="table table-striped table-hover shadow">
-            <thead class="table-primary">
-                <tr>
-                    <th>序号</th>
-                    <th>名称</th>
-                    <th>功能</th>
-                    <th>编号</th>
-                    <th>状态</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.function|truncate(30) or '无' }}</td>
-                    <td>{{ item.serial_number }}</td>
-                    <td>
-                        <span class="badge bg-{{ 
-                            'success' if item.status == 'available' else 
-                            'warning' if item.status == 'reserved' else 'danger' 
-                        }}">
-                            {{ item.status|replace('available', '可用')|replace('reserved', '已预约')|replace('borrowed', '已借出') }}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <!-- 所有用户都能看到：查看、记录按钮 -->
-                            <a href="{{ url_for('items.view', id=item.id) }}" class="btn btn-sm btn-info">查看</a>
-                            <a href="{{ url_for('records.item_records', item_id=item.id) }}" class="btn btn-sm btn-outline-info">记录</a>
-
-                            <!-- 所有用户（包括管理员）：物品可用时显示“使用/预约” -->
+    <!-- 修复：移除了 overflow-hidden，防止下拉菜单被截断 -->
+    <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary">
+        <div class="table-responsive-lg">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-secondary border-bottom">
+                    <tr>
+                        <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">名称</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">功能</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">编号</th>
+                        <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
+                        <th scope="col" class="text-end text-muted small fw-bold text-uppercase py-3 pe-4" style="min-width: 200px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white">
+                    {% for item in items %}
+                    <tr>
+                        <td class="text-center text-secondary fw-medium">
+                            {{ loop.index }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('items.view', id=item.id) }}" class="text-primary text-decoration-none fw-bold">
+                                {{ item.name }}
+                            </a>
+                        </td>
+                        <td class="text-muted small">{{ item.function|truncate(20) or '-' }}</td>
+                        <td class="text-muted small font-monospace">{{ item.serial_number }}</td>
+                        <td class="text-center">
                             {% if item.status == 'available' %}
-                            <a href="{{ url_for('records.create', item_id=item.id) }}" class="btn btn-sm btn-success">使用</a>
-                            <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-sm btn-warning">预约</a>
+                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-10 px-3 py-2">可用</span>
+                            {% elif item.status == 'borrowed' %}
+                                <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 px-3 py-2">已借出</span>
+                            {% elif item.status == 'reserved' %}
+                                <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10 px-3 py-2">已预约</span>
+                            {% else %}
+                                <span class="badge rounded-pill bg-secondary px-3 py-2">{{ item.status }}</span>
                             {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="d-flex justify-content-end gap-2 align-items-center">
+                                <!-- 快捷操作 -->
+                                {% if item.status == 'available' %}
+                                <a href="{{ url_for('records.create', item_id=item.id) }}"
+                                   class="btn btn-sm btn-success text-white shadow-sm px-3 fw-medium">
+                                    <i class="bi bi-play-fill me-1"></i>使用
+                                </a>
+                                {% endif %}
 
-                            <!-- 仅管理员：额外显示“编辑/删除” -->
+                                <!-- 更多下拉菜单 -->
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-light border text-secondary dropdown-toggle"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            data-bs-boundary="viewport"
+                                            aria-expanded="false">
+                                        更多
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-3 mt-1 p-2" style="min-width: 200px; z-index: 1050;">
+                                        <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">业务操作</h6></li>
+                                        <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('items.view', id=item.id) }}"><i class="bi bi-eye me-2 text-primary"></i>查看详情</a></li>
+                                        <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('records.item_records', item_id=item.id) }}"><i class="bi bi-clock-history me-2 text-info"></i>使用记录</a></li>
+                                        <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('reservations.create', item_id=item.id) }}"><i class="bi bi-calendar-event me-2 text-warning"></i>预约物品</a></li>
+
+                                        {% if current_user.is_admin() %}
+                                        <li><hr class="dropdown-divider my-2"></li>
+                                        <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">管理操作</h6></li>
+                                        <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('items.edit', id=item.id) }}"><i class="bi bi-pencil me-2 text-primary"></i>编辑物品</a></li>
+                                        <li>
+                                            <button class="dropdown-item rounded-2 py-2 text-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}">
+                                                <i class="bi bi-trash me-2"></i>删除物品
+                                            </button>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- 删除模态框 -->
                             {% if current_user.is_admin() %}
-                            <a href="{{ url_for('items.edit', id=item.id) }}" class="btn btn-sm btn-primary">编辑</a>
-                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}">删除</button>
-                            {% endif %}
-                        </div>
-
-                        <!-- 物品删除模态框（管理员） -->
-                        {% if current_user.is_admin() %}
-                        <div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-danger text-white">
-                                        <h5 class="modal-title">确认删除</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <p>确定要删除物品 <strong>"{{ item.name }}"</strong> 吗？此操作不可恢复。</p>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                                        <form action="{{ url_for('items.delete', id=item.id) }}" method="post">
-                                            <button type="submit" class="btn btn-danger">删除</button>
-                                        </form>
+                            <div class="modal fade text-start" id="deleteModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content border-0 shadow">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title">确认删除</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <p class="mb-2">确定要删除物品 <strong class="text-dark fs-5">"{{ item.name }}"</strong> 吗？</p>
+                                            <p class="text-danger small mb-0"><i class="bi bi-exclamation-triangle me-1"></i> 此操作不可恢复。</p>
+                                        </div>
+                                        <div class="modal-footer bg-light">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            <form action="{{ url_for('items.delete', id=item.id) }}" method="post">
+                                                <button type="submit" class="btn btn-danger">确认删除</button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     {% else %}
-    <div class="alert alert-info mt-3">
-        该空间暂无物品
-        {% if current_user.is_admin() %}
-        <a href="{{ url_for('items.create', space_id=space.id) }}" class="alert-link">添加物品</a>
-        {% endif %}
+    <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary text-center py-5">
+        <div class="card-body">
+            <div class="mb-3">
+                <i class="bi bi-box-seam text-secondary display-1" style="font-size: 4rem; opacity: 0.3;"></i>
+            </div>
+            <h5 class="text-muted fw-normal">空间内暂无物品</h5>
+            {% if current_user.is_admin() %}
+            <div class="mt-3">
+                <a href="{{ url_for('items.create', space_id=space.id) }}" class="btn btn-primary rounded-pill px-4">添加物品</a>
+            </div>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 </div>
