@@ -64,7 +64,7 @@ def check_reservation_availability(item_id, start_date, end_date, exclude_id=Non
 
     query = Reservation.query.filter_by(
         item_id=item_id,
-        status='valid'
+        status='active'
     ).filter(
         Reservation.reservation_start <= end_date,
         Reservation.reservation_end >= start_date

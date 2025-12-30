@@ -62,7 +62,7 @@ def view(id):
     # 获取当前有效的预约
     active_reservations = Reservation.query.filter_by(
         item_id=id,
-        status='valid'
+        status='active'
     ).filter(
         Reservation._utc_reservation_start <= datetime.utcnow(),
         Reservation._utc_reservation_end >= datetime.utcnow()

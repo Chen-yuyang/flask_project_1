@@ -16,7 +16,7 @@ def index():
 
         # 获取当前用户的有效预约
         my_reservations = current_user.reservations.filter(
-            Reservation.status == 'valid',
+            Reservation.status == 'active',
             Reservation._utc_reservation_end >= datetime.utcnow()
         ).order_by(Reservation._utc_reservation_start).limit(5).all()
 
