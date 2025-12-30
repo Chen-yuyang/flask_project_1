@@ -6,8 +6,7 @@ from app import db
 from app.models import Item, Space, Record, Reservation
 from app.forms.item_forms import ItemForm
 
-from app.utils import generate_and_save_item_qrcode  # 导入工具函数
-
+from app.utils import generate_and_save_item_qrcode
 
 bp = Blueprint('items', __name__)
 
@@ -15,7 +14,11 @@ bp = Blueprint('items', __name__)
 @bp.route('/')
 @login_required
 def all_items():
-    query = request.args.get('query', '')
+    # 获取分页参数
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # 每页显示15条
+
+    query = request.args.get('query', '').strip()
     status = request.args.get('status', '')
 
     items_query = Item.query
@@ -32,8 +35,14 @@ def all_items():
     if status:
         items_query = items_query.filter(Item.status == status)
 
-    items = items_query.all()
-    return render_template('items/all_items.html', items=items)
+    # 按创建时间或ID倒序排列（可选，这里默认按ID）
+    items_query = items_query.order_by(Item.id.asc())
+
+    # 使用 paginate
+    pagination = items_query.paginate(page=page, per_page=per_page, error_out=False)
+    items = pagination.items
+
+    return render_template('items/all_items.html', items=items, pagination=pagination)
 
 
 @bp.route('/<int:id>')
@@ -145,4 +154,7 @@ def delete(id):
     db.session.delete(item)
     db.session.commit()
     flash(f'物品 "{item.name}" 已删除')
+
+    # 如果是在所有物品页面删除，最好返回所有物品页面，但为了简化逻辑，返回空间页面也是合理的
+    # 或者返回 request.referrer
     return redirect(url_for('spaces.view', id=space_id))
