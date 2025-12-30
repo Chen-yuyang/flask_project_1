@@ -7,11 +7,6 @@
 <!-- 标题与操作 -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2 fw-bold text-dark">所有物品</h1>
-    {% if current_user.is_admin() %}
-    <a href="{{ url_for('spaces.index') }}" class="btn btn-primary shadow-sm rounded-pill px-4">
-        <i class="bi bi-plus-lg me-1"></i> 添加物品
-    </a>
-    {% endif %}
 </div>
 
 <!-- 筛选与搜索表单 -->
@@ -29,7 +24,7 @@
                 </div>
             </div>
 
-            <!-- 状态筛选（样式优化：增加 input-group 使其与搜索框视觉一致，解决边框缺失感） -->
+            <!-- 状态筛选 -->
             <div class="col-md-3">
                 <label class="form-label text-muted small fw-bold text-uppercase mb-1">状态筛选</label>
                 <div class="input-group">
@@ -60,10 +55,6 @@
 
 <!-- 物品列表 -->
 {% if items %}
-<!-- 优化：
-     1. 移除 overflow-hidden 防止裁剪下拉菜单
-     2. 使用 table-responsive-lg：大屏下不限制滚动，允许菜单溢出；小屏下保持滚动
--->
 <div class="card border-0 shadow-sm rounded-4">
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
@@ -84,7 +75,6 @@
                         {{ (pagination.page - 1) * pagination.per_page + loop.index }}
                     </td>
                     <td>
-                        <!-- 物品名称作为主要入口，使用粗体蓝色链接 -->
                         <a href="{{ url_for('items.view', id=item.id) }}" class="text-primary text-decoration-none fw-bold">
                             {{ item.name }}
                         </a>
@@ -117,8 +107,8 @@
                             {% endif %}
 
                             <!-- 2. 更多操作下拉菜单 -->
-                            <!-- dropup 逻辑：最后2行数据向上展开，配合 viewport 边界检测 -->
-                            <div class="btn-group {% if loop.revindex <= 2 and items|length > 2 %}dropup{% endif %}">
+                            <!-- 修改：移除了 dropup 判断，完全交给 Bootstrap 自动定位 -->
+                            <div class="btn-group">
                                 <button class="btn btn-sm btn-light border text-secondary dropdown-toggle"
                                         type="button"
                                         data-bs-toggle="dropdown"
