@@ -9,14 +9,17 @@ from app.forms.reservation_forms import ReservationForm
 
 bp = Blueprint('reservations', __name__)
 
-# 定义与 models.py 一致的本地时区
+# 定义本地时区 (与 models.py 保持一致)
 LOCAL_TIMEZONE = pytz.timezone('Asia/Shanghai')
 
 
 @bp.route('/my')
 @login_required
 def my_reservations():
-    """查看当前用户的预约"""
+    """查看当前用户的预约（分页）"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
     status = request.args.get('status', '')
     item_name = request.args.get('item_name', '').strip()
 
@@ -32,12 +35,16 @@ def my_reservations():
         query = query.join(Item).filter(Item.name.ilike(f'%{item_name}%'))
 
     # 按开始时间倒序排列
-    reservations = query.order_by(Reservation._utc_reservation_start.desc()).all()
+    query = query.order_by(Reservation._utc_reservation_start.desc())
 
-    # 修复：传递带时区的当前时间 (datetime.now(LOCAL_TIMEZONE))
-    # 这样在模板中与 reservation.reservation_start (也是带时区的) 相减时就不会报错了
+    # 分页
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    reservations = pagination.items
+
+    # 传递带时区的当前时间，防止模板中计算剩余时间时报错
     return render_template('reservations/my_reservations.html',
                            reservations=reservations,
+                           pagination=pagination,
                            current_status=status,
                            now_local=datetime.now(LOCAL_TIMEZONE))
 
@@ -45,10 +52,13 @@ def my_reservations():
 @bp.route('/all')
 @login_required
 def all_reservations():
-    """管理员查看所有预约"""
+    """管理员查看所有预约（分页）"""
     if not current_user.is_admin():
         flash('没有权限查看所有预约')
         return redirect(url_for('reservations.my_reservations'))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
 
     status = request.args.get('status', '')
     item_name = request.args.get('item_name', '').strip()
@@ -56,39 +66,42 @@ def all_reservations():
 
     query = Reservation.query
 
-    # 筛选状态
     if status:
         query = query.filter(Reservation.status == status)
-
-    # 筛选物品名称 (联表模糊查询)
     if item_name:
         query = query.join(Item).filter(Item.name.ilike(f'%{item_name}%'))
-
-    # 筛选用户名 (联表模糊查询)
     if username:
         query = query.join(User).filter(User.username.ilike(f'%{username}%'))
 
-    # 按开始时间倒序
-    reservations = query.order_by(Reservation._utc_reservation_start.desc()).all()
+    query = query.order_by(Reservation._utc_reservation_start.desc())
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    reservations = pagination.items
 
     return render_template('reservations/all_reservations.html',
                            reservations=reservations,
+                           pagination=pagination,
                            current_status=status)
 
 
 @bp.route('/item/<int:item_id>')
 @login_required
 def item_reservations(item_id):
-    """查看特定物品的预约"""
+    """查看特定物品的预约（分页）"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
     item = Item.query.get_or_404(item_id)
 
-    reservations = Reservation.query.filter_by(item_id=item_id).order_by(
-        Reservation._utc_reservation_start.desc()).all()
+    query = Reservation.query.filter_by(item_id=item_id).order_by(Reservation._utc_reservation_start.desc())
 
-    # 修复：同样传递带时区的当前时间
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    reservations = pagination.items
+
     return render_template('reservations/item_reservations.html',
                            item=item,
                            reservations=reservations,
+                           pagination=pagination,
                            now_local=datetime.now(LOCAL_TIMEZONE))
 
 
@@ -210,7 +223,6 @@ def delete(reservation_id):
         return redirect(url_for('reservations.my_reservations'))
 
     reservation = Reservation.query.get_or_404(reservation_id)
-
     db.session.delete(reservation)
     db.session.commit()
 

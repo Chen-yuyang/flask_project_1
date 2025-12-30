@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_macros.html" as macros %}
 
 {% block title %}所有预约 - 物品管理系统{% endblock %}
 
@@ -13,7 +14,7 @@
     <div class="card-body bg-light rounded-4 p-4">
         <form class="row g-3 align-items-end" action="{{ url_for('reservations.all_reservations') }}" method="get">
 
-            <!-- 状态筛选 (保留下拉) -->
+            <!-- 状态筛选 -->
             <div class="col-md-3">
                 <label class="form-label text-muted small fw-bold text-uppercase mb-1">预约状态</label>
                 <div class="input-group">
@@ -30,7 +31,7 @@
                 </div>
             </div>
 
-            <!-- 物品筛选 (改为文本输入框) -->
+            <!-- 物品筛选 -->
             <div class="col-md-3">
                 <label class="form-label text-muted small fw-bold text-uppercase mb-1">物品名称</label>
                 <div class="input-group">
@@ -41,7 +42,7 @@
                 </div>
             </div>
 
-            <!-- 用户筛选 (改为文本输入框) -->
+            <!-- 用户筛选 -->
             <div class="col-md-3">
                 <label class="form-label text-muted small fw-bold text-uppercase mb-1">预约用户</label>
                 <div class="input-group">
@@ -72,7 +73,7 @@
 <div class="card border-0 shadow-sm rounded-4">
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
-            <thead class="bg-light border-bottom">
+            <thead class="table-secondary border-bottom">
                 <tr>
                     <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
                     <th scope="col" class="text-muted small fw-bold text-uppercase py-3">预约人</th>
@@ -87,7 +88,7 @@
                 {% for reservation in reservations %}
                 <tr>
                     <td class="text-center text-secondary fw-medium">
-                        {{ loop.index }}
+                        {{ (pagination.page - 1) * pagination.per_page + loop.index }}
                     </td>
                     <td>
                         <div class="d-flex align-items-center">
@@ -172,7 +173,7 @@
                             </div>
                         </div>
 
-                        <!-- 模态框保持不变 -->
+                        <!-- 模态框逻辑保持不变... -->
                         {% if (current_user.is_admin() or reservation.user_id == current_user.id) and reservation.status in ['scheduled', 'active'] %}
                             <div class="modal fade text-start" id="cancelModal{{ reservation.id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
@@ -223,6 +224,11 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- 分页控件 -->
+    <div class="mt-4 d-flex justify-content-center">
+        {{ macros.render_pagination(pagination, 'reservations.all_reservations', status=request.args.get('status'), item_name=request.args.get('item_name'), username=request.args.get('username')) }}
     </div>
 </div>
 {% else %}

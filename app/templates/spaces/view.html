@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_macros.html" as macros %}
 
 {% block title %}{{ space.name }} - 物品管理系统{% endblock %}
 
@@ -93,11 +94,10 @@
 <div>
     <div class="d-flex align-items-center mb-3">
         <h5 class="fw-bold text-dark mb-0 me-2">物品列表</h5>
-        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">{{ items|length }}</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">{{ pagination.total }}</span>
     </div>
 
     {% if items %}
-    <!-- 修复：移除了 overflow-hidden，防止下拉菜单被截断 -->
     <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary">
         <div class="table-responsive-lg">
             <table class="table table-hover align-middle mb-0">
@@ -115,7 +115,7 @@
                     {% for item in items %}
                     <tr>
                         <td class="text-center text-secondary fw-medium">
-                            {{ loop.index }}
+                            {{ (pagination.page - 1) * pagination.per_page + loop.index }}
                         </td>
                         <td>
                             <a href="{{ url_for('items.view', id=item.id) }}" class="text-primary text-decoration-none fw-bold">
@@ -204,6 +204,12 @@
             </table>
         </div>
     </div>
+
+    <!-- 添加分页控件 -->
+    <div class="mt-4 d-flex justify-content-center">
+        {{ macros.render_pagination(pagination, 'spaces.view', id=space.id) }}
+    </div>
+
     {% else %}
     <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary text-center py-5">
         <div class="card-body">

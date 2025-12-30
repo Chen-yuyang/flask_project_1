@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_macros.html" as macros %}
 
 {% block title %}我的预约 - 物品管理系统{% endblock %}
 
@@ -29,7 +30,7 @@
                 </div>
             </div>
 
-            <!-- 物品筛选 (改为文本输入框) -->
+            <!-- 物品筛选 -->
             <div class="col-md-4">
                 <label class="form-label text-muted small fw-bold text-uppercase mb-1">预约物品</label>
                 <div class="input-group">
@@ -59,7 +60,7 @@
 <div class="card border-0 shadow-sm rounded-4">
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
-            <thead class="bg-light border-bottom">
+            <thead class="table-secondary border-bottom">
                 <tr>
                     <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
                     <th scope="col" class="text-muted small fw-bold text-uppercase py-3">物品信息</th>
@@ -73,7 +74,7 @@
                 {% for reservation in reservations %}
                 <tr>
                     <td class="text-center text-secondary fw-medium">
-                        {{ loop.index }}
+                        {{ (pagination.page - 1) * pagination.per_page + loop.index }}
                     </td>
                     <td>
                         <a href="{{ url_for('items.view', id=reservation.item.id) }}" class="text-primary text-decoration-none fw-bold">
@@ -185,6 +186,11 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- 分页控件 -->
+    <div class="mt-4 d-flex justify-content-center">
+        {{ macros.render_pagination(pagination, 'reservations.my_reservations', status=request.args.get('status'), item_name=request.args.get('item_name')) }}
     </div>
 </div>
 {% else %}
