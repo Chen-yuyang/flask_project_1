@@ -57,10 +57,11 @@
 {% if reservations %}
 <!-- 修复1：移除 overflow-hidden -->
 <div class="card border-0 shadow-sm rounded-4">
+    <!-- 修复2：使用 table-responsive-lg -->
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
-            <!-- 修复2：应用统一表头风格 -->
-            <thead class="bg-light border-bottom">
+            <!-- 修复3：表头改为 table-secondary -->
+            <thead class="table-secondary border-bottom">
                 <tr>
                     <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
                     <th scope="col" class="text-muted small fw-bold text-uppercase py-3">物品信息</th>
@@ -97,8 +98,9 @@
                             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
                             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
                         } %}
+                        <!-- 修复4：状态说明文字 -->
                         {% set status_desc = {
-                            'scheduled': '时间到自动生效',
+                            'scheduled': '到点自动生效',
                             'active': '请在结束前归还',
                             'conflicted': '物品未归还',
                             'expired': '超24小时未使用',
@@ -116,7 +118,6 @@
                             <span class="badge rounded-pill bg-secondary px-3 py-2">{{ status_map[reservation.status] }}</span>
                         {% endif %}
 
-                        <!-- 动态提示 + 修复3：状态说明 -->
                         <div class="mt-1">
                         {% if reservation.is_scheduled() %}
                             {% set hours_left = (reservation.reservation_start - now_local).total_seconds() / 3600 %}

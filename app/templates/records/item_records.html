@@ -15,7 +15,7 @@
                 <li class="breadcrumb-item active" aria-current="page">历史记录</li>
             </ol>
         </nav>
-        <h1 class="h2 mb-0">
+        <h1 class="h2 fw-bold text-dark mb-0">
             {{ item.name }} <span class="text-muted fs-4 fw-light">的历史记录</span>
         </h1>
     </div>
@@ -33,100 +33,111 @@
     </div>
 </div>
 
-<!-- 筛选表单 -->
-<div class="card mb-4 border-0 shadow-sm">
-    <div class="card-body bg-light rounded">
+<!-- 筛选表单 (卡片式 + Input Group) -->
+<div class="card mb-4 border-0 shadow-sm rounded-4">
+    <div class="card-body bg-light rounded-4 p-4">
         <form method="get" class="row g-3 align-items-end">
             <!-- 用户名搜索 -->
             <div class="col-md-4">
-                <label class="form-label text-muted small mb-1">借用人</label>
-                <input type="text" name="username" class="form-control" placeholder="搜索用户名..."
-                       value="{{ request.args.get('username', '') }}">
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1">借用人</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-person text-muted"></i></span>
+                    <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="搜索用户名..."
+                           value="{{ request.args.get('username', '') }}">
+                </div>
             </div>
 
-            <!-- 状态筛选 (可选，保持统一性) -->
+            <!-- 状态筛选 -->
              <div class="col-md-3">
-                <label class="form-label text-muted small mb-1">状态</label>
-                <select name="status" class="form-select">
-                    <option value="">所有状态</option>
-                    <option value="using" {% if request.args.get('status') == 'using' %}selected{% endif %}>使用中</option>
-                    <option value="returned" {% if request.args.get('status') == 'returned' %}selected{% endif %}>已归还</option>
-                </select>
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1">状态</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-flag text-muted"></i></span>
+                    <select name="status" class="form-select border-start-0 ps-0">
+                        <option value="">所有状态</option>
+                        <option value="using" {% if request.args.get('status') == 'using' %}selected{% endif %}>使用中</option>
+                        <option value="returned" {% if request.args.get('status') == 'returned' %}selected{% endif %}>已归还</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- 筛选按钮 -->
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-filter"></i> 筛选
-                </button>
-            </div>
-
-            <!-- 重置 -->
-            <div class="col-md-2">
-                {% if request.args.get('username') or request.args.get('status') %}
-                <a href="{{ url_for('records.item_records', item_id=item.id) }}" class="btn btn-outline-secondary w-100 border-0">
-                    <i class="bi bi-x-circle"></i> 重置
-                </a>
-                {% endif %}
+            <!-- 按钮组 -->
+            <div class="col-md-5">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">筛选</button>
+                    {% if request.args.get('username') or request.args.get('status') %}
+                    <a href="{{ url_for('records.item_records', item_id=item.id) }}" class="btn btn-outline-secondary px-3" title="重置筛选">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                    {% endif %}
+                </div>
             </div>
         </form>
     </div>
 </div>
 
 {% if records %}
-    <div class="table-responsive shadow-sm rounded">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-secondary border-bottom">
-                <tr>
-                    <th scope="col" class="text-center" style="width: 80px;">序号</th>
-                    <th scope="col">借用人</th>
-                    <th scope="col">开始时间</th>
-                    <th scope="col">归还时间</th>
-                    <th scope="col">使用位置</th>
-                    <th scope="col">状态</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in records %}
-                <tr>
-                    <td class="text-center fw-bold text-secondary">
-                        {{ (pagination.page - 1) * pagination.per_page + loop.index }}
-                    </td>
-                    <td>
-                        <span class="badge bg-light text-dark border px-2 py-1">
-                            <i class="bi bi-person me-1"></i>{{ record.user.username }}
-                        </span>
-                    </td>
-                    <td>{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td>
-                        {% if record.return_time %}
-                            {{ record.return_time.strftime('%Y-%m-%d %H:%M') }}
-                        {% else %}
-                            <span class="text-muted small">-</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ record.usage_location }}</td>
-                    <td>
-                        {% if record.status == 'using' %}
-                            <span class="badge bg-primary bg-opacity-10 text-primary px-3">使用中</span>
-                        {% else %}
-                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-3">已归还</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- 表格容器：移除 overflow-hidden，使用 table-responsive-lg -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="table-responsive-lg">
+            <table class="table table-hover align-middle mb-0">
+                <!-- 统一表头风格 -->
+                <thead class="table-secondary border-bottom">
+                    <tr>
+                        <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 80px;">序号</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">借用人</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">开始时间</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">归还时间</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">使用位置</th>
+                        <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td class="text-center text-secondary fw-medium">
+                            {{ (pagination.page - 1) * pagination.per_page + loop.index }}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light rounded-circle p-1 me-2 text-secondary">
+                                    <i class="bi bi-person-fill"></i>
+                                </div>
+                                <span class="fw-bold text-dark">{{ record.user.username }}</span>
+                            </div>
+                        </td>
+                        <td>{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if record.return_time %}
+                                {{ record.return_time.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.usage_location or '未记录' }}</td>
+                        <td class="text-center">
+                            {% if record.status == 'using' %}
+                                <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-3 py-2">使用中</span>
+                            {% else %}
+                                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 px-3 py-2">已归还</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    {# 渲染分页 #}
-    <div class="mt-4">
+    <!-- 分页控件 (置于卡片外) -->
+    <div class="mt-4 d-flex justify-content-center">
         {{ macros.render_pagination(pagination, 'records.item_records', item_id=item.id, username=request.args.get('username'), status=request.args.get('status')) }}
     </div>
 
 {% else %}
-    <div class="alert alert-info border-0 shadow-sm">
-        <i class="bi bi-info-circle me-2"></i> 没有找到符合条件的记录。
+    <div class="card border-0 shadow-sm rounded-4 text-center py-5">
+        <div class="card-body">
+            <h5 class="text-muted fw-normal">该物品暂无使用记录</h5>
+        </div>
     </div>
 {% endif %}
 {% endblock %}

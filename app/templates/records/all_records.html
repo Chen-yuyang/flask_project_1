@@ -8,7 +8,6 @@
     <h1 class="h2 fw-bold text-dark">所有使用记录</h1>
 </div>
 
-<!-- 筛选表单 -->
 <div class="card mb-4 border-0 shadow-sm rounded-4">
     <div class="card-body bg-light rounded-4 p-4">
         <form method="get" class="row g-3 align-items-end">
@@ -51,12 +50,11 @@
 </div>
 
 {% if records %}
-    <!-- 统一风格：Card容器 -->
     <div class="card border-0 shadow-sm rounded-4">
         <div class="table-responsive-lg">
             <table class="table table-hover align-middle mb-0">
-                <!-- 统一风格：新表头 -->
-                <thead class="bg-light border-bottom">
+                <!-- 修复：统一表头风格 -->
+                <thead class="table-secondary border-bottom">
                     <tr>
                         <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 80px;">序号</th>
                         <th scope="col" class="text-muted small fw-bold text-uppercase py-3">用户</th>

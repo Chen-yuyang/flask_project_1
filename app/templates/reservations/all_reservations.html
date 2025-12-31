@@ -68,12 +68,13 @@
 </div>
 
 {% if reservations %}
-<!-- 修复1：移除 overflow-hidden，防止下拉菜单被截断 -->
+<!-- 修复1：移除 overflow-hidden，防止菜单截断 -->
 <div class="card border-0 shadow-sm rounded-4">
+    <!-- 修复2：使用 table-responsive-lg，大屏不滚动，允许菜单溢出 -->
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
-            <!-- 修复2：应用统一的表头风格 -->
-            <thead class="bg-light border-bottom">
+            <!-- 修复3：表头改为 table-secondary -->
+            <thead class="table-secondary border-bottom">
                 <tr>
                     <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
                     <th scope="col" class="text-muted small fw-bold text-uppercase py-3">预约人</th>
@@ -119,8 +120,9 @@
                             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
                             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
                         } %}
+                        <!-- 修复4：状态说明文字 -->
                         {% set status_desc = {
-                            'scheduled': '时间到自动生效',
+                            'scheduled': '到点自动生效',
                             'active': '请在结束前归还',
                             'conflicted': '物品未归还',
                             'expired': '超24小时未使用',
@@ -140,7 +142,6 @@
                             <span class="badge rounded-pill bg-secondary px-3 py-2">{{ status_map[reservation.status] }}</span>
                         {% endif %}
 
-                        <!-- 修复3：添加状态说明小字 -->
                         <div class="text-muted small mt-1" style="font-size: 0.75rem;">
                             {{ status_desc[reservation.status] }}
                         </div>
@@ -179,7 +180,7 @@
                             </ul>
                         </div>
 
-                        <!-- 模态框 (保持原样，省略具体内容以节省篇幅) -->
+                        <!-- 模态框 (保持原逻辑) -->
                         {% if (current_user.is_admin() or reservation.user_id == current_user.id) and reservation.status in ['scheduled', 'active'] %}
                             <div class="modal fade text-start" id="cancelModal{{ reservation.id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">

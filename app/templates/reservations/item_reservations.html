@@ -24,10 +24,11 @@
 {% if reservations %}
 <!-- 修复1：移除 overflow-hidden -->
 <div class="card border-0 shadow-sm rounded-4">
+    <!-- 修复2：使用 table-responsive-lg -->
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
-            <!-- 修复2：应用统一表头风格 -->
-            <thead class="bg-light border-bottom">
+            <!-- 修复3：表头改为 table-secondary，字体一致 -->
+            <thead class="table-secondary border-bottom">
                 <tr>
                     <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
                     <th scope="col" class="text-muted small fw-bold text-uppercase py-3">预约人</th>
@@ -61,8 +62,9 @@
                             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
                             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
                         } %}
+                        <!-- 修复4：状态说明文字 -->
                         {% set status_desc = {
-                            'scheduled': '时间到自动生效',
+                            'scheduled': '到点自动生效',
                             'active': '请在结束前归还',
                             'conflicted': '物品未归还',
                             'expired': '超24小时未使用',
@@ -82,7 +84,6 @@
                             {{ status_map[reservation.status] }}
                         </span>
 
-                        <!-- 修复3：添加状态说明 -->
                         <div class="text-muted small mt-1" style="font-size: 0.75rem;">
                             {{ status_desc[reservation.status] }}
                         </div>
