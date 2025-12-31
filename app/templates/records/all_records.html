@@ -9,26 +9,23 @@
 </div>
 
 <!-- 筛选表单 -->
-<div class="card mb-4 border-0 shadow-sm">
-    <div class="card-body bg-light rounded">
+<div class="card mb-4 border-0 shadow-sm rounded-4">
+    <div class="card-body bg-light rounded-4 p-4">
         <form method="get" class="row g-3 align-items-end">
-            <!-- 用户名筛选 -->
             <div class="col-md-3">
-                <label class="form-label text-muted small mb-1">用户名</label>
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1">用户名</label>
                 <input type="text" name="username" class="form-control" placeholder="搜索用户..."
                        value="{{ request.args.get('username', '') }}">
             </div>
 
-            <!-- 物品名筛选 -->
             <div class="col-md-3">
-                <label class="form-label text-muted small mb-1">物品名称</label>
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1">物品名称</label>
                 <input type="text" name="item_name" class="form-control" placeholder="搜索物品..."
                        value="{{ request.args.get('item_name', '') }}">
             </div>
 
-            <!-- 状态筛选 -->
             <div class="col-md-2">
-                <label class="form-label text-muted small mb-1">状态</label>
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1">状态</label>
                 <select name="status" class="form-select">
                     <option value="">所有状态</option>
                     <option value="using" {% if request.args.get('status') == 'using' %}selected{% endif %}>使用中</option>
@@ -36,14 +33,12 @@
                 </select>
             </div>
 
-            <!-- 筛选按钮 -->
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-filter"></i> 筛选
                 </button>
             </div>
 
-            <!-- 重置链接 -->
             <div class="col-md-2">
                 {% if request.args.get('username') or request.args.get('item_name') or request.args.get('status') %}
                 <a href="{{ url_for('records.all_records') }}" class="btn btn-outline-secondary w-100 border-0">
@@ -56,71 +51,78 @@
 </div>
 
 {% if records %}
-    <div class="table-responsive shadow-sm rounded">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-secondary border-bottom">
-                <tr>
-                    <!-- 修改：标题改为“序号” -->
-                    <th scope="col" class="text-center" style="width: 80px;">序号</th>
-                    <th scope="col">用户</th>
-                    <th scope="col">物品</th>
-                    <th scope="col">开始时间</th>
-                    <th scope="col">归还时间</th>
-                    <th scope="col">状态</th>
-                    <th scope="col" class="text-end">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in records %}
-                <tr>
-                    <!-- 修改：使用分页公式计算连续序号 (页码-1)*每页数量 + 当前页索引 -->
-                    <td class="text-center fw-bold text-secondary">
-                        {{ (pagination.page - 1) * pagination.per_page + loop.index }}
-                    </td>
-                    <td>
-                        <span class="badge bg-light text-dark border">
-                            <i class="bi bi-person me-1"></i>{{ record.user.username }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{{ url_for('items.view', id=record.item_id) }}" class="text-decoration-none fw-semibold">
-                            {{ record.item.name }}
-                        </a>
-                    </td>
-                    <td>{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td>
-                        {% if record.return_time %}
-                            {{ record.return_time.strftime('%Y-%m-%d %H:%M') }}
-                        {% else %}
-                            <span class="text-muted small">-</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if record.status == 'using' %}
-                            <span class="badge bg-primary bg-opacity-10 text-primary">使用中</span>
-                        {% else %}
-                            <span class="badge bg-secondary bg-opacity-10 text-secondary">已归还</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-end">
-                        <form action="{{ url_for('records.delete', record_id=record.id, username=request.args.get('username'), item_name=request.args.get('item_name'), status=request.args.get('status'), page=pagination.page) }}" method="post" onsubmit="return confirm('确定要删除这条记录吗？这不会影响物品当前的状态。');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> 删除
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- 统一风格：Card容器 -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="table-responsive-lg">
+            <table class="table table-hover align-middle mb-0">
+                <!-- 统一风格：新表头 -->
+                <thead class="bg-light border-bottom">
+                    <tr>
+                        <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 80px;">序号</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">用户</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">物品</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">开始时间</th>
+                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">归还时间</th>
+                        <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
+                        <th scope="col" class="text-end text-muted small fw-bold text-uppercase py-3 pe-4">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td class="text-center text-secondary fw-medium">
+                            {{ (pagination.page - 1) * pagination.per_page + loop.index }}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light rounded-circle p-1 me-2 text-secondary">
+                                    <i class="bi bi-person-fill"></i>
+                                </div>
+                                <span class="fw-bold text-dark">{{ record.user.username }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('items.view', id=record.item_id) }}" class="text-primary text-decoration-none fw-bold">
+                                {{ record.item.name }}
+                            </a>
+                        </td>
+                        <td>{{ record.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if record.return_time %}
+                                {{ record.return_time.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if record.status == 'using' %}
+                                <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-3 py-2">使用中</span>
+                            {% else %}
+                                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 px-3 py-2">已归还</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <form action="{{ url_for('records.delete', record_id=record.id, username=request.args.get('username'), item_name=request.args.get('item_name'), status=request.args.get('status'), page=pagination.page) }}" method="post" onsubmit="return confirm('确定要删除这条记录吗？这不会影响物品当前的状态。');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i> 删除
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="mt-4">
+    <div class="mt-4 d-flex justify-content-center">
         {{ macros.render_pagination(pagination, 'records.all_records', username=request.args.get('username'), item_name=request.args.get('item_name'), status=request.args.get('status')) }}
     </div>
 {% else %}
-    <div class="alert alert-info border-0 shadow-sm">
-        <i class="bi bi-info-circle me-2"></i> 没有找到符合条件的记录。
+    <div class="card border-0 shadow-sm rounded-4 text-center py-5">
+        <div class="card-body">
+            <h5 class="text-muted fw-normal">没有找到符合条件的记录</h5>
+        </div>
     </div>
 {% endif %}
 {% endblock %}

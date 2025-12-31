@@ -4,12 +4,11 @@
 {% block title %}所有预约 - 物品管理系统{% endblock %}
 
 {% block content %}
-<!-- 标题 -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2 fw-bold text-dark">所有预约</h1>
 </div>
 
-<!-- 筛选表单 (卡片式) -->
+<!-- 筛选表单 -->
 <div class="card mb-4 border-0 shadow-sm rounded-4">
     <div class="card-body bg-light rounded-4 p-4">
         <form class="row g-3 align-items-end" action="{{ url_for('reservations.all_reservations') }}" method="get">
@@ -68,12 +67,13 @@
     </div>
 </div>
 
-<!-- 预约列表 -->
 {% if reservations %}
-<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+<!-- 修复1：移除 overflow-hidden，防止下拉菜单被截断 -->
+<div class="card border-0 shadow-sm rounded-4">
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-secondary border-bottom">
+            <!-- 修复2：应用统一的表头风格 -->
+            <thead class="bg-light border-bottom">
                 <tr>
                     <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
                     <th scope="col" class="text-muted small fw-bold text-uppercase py-3">预约人</th>
@@ -81,7 +81,7 @@
                     <th scope="col" class="text-muted small fw-bold text-uppercase py-3">预约时间段</th>
                     <th scope="col" class="text-muted small fw-bold text-uppercase py-3">备注</th>
                     <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
-                    <th scope="col" class="text-end text-muted small fw-bold text-uppercase py-3 pe-4" style="min-width: 180px;">操作</th>
+                    <th scope="col" class="text-end text-muted small fw-bold text-uppercase py-3 pe-4" style="min-width: 120px;">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -119,6 +119,15 @@
                             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
                             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
                         } %}
+                        {% set status_desc = {
+                            'scheduled': '时间到自动生效',
+                            'active': '请在结束前归还',
+                            'conflicted': '物品未归还',
+                            'expired': '超24小时未使用',
+                            'cancelled': '手动取消',
+                            'used': '已转为借用记录'
+                        } %}
+
                         {% if reservation.status == 'scheduled' %}
                             <span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-10 px-3 py-2">待开始</span>
                         {% elif reservation.status == 'active' %}
@@ -130,45 +139,47 @@
                         {% else %}
                             <span class="badge rounded-pill bg-secondary px-3 py-2">{{ status_map[reservation.status] }}</span>
                         {% endif %}
+
+                        <!-- 修复3：添加状态说明小字 -->
+                        <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                            {{ status_desc[reservation.status] }}
+                        </div>
                     </td>
                     <td class="text-end pe-4">
-                        <div class="d-flex justify-content-end gap-2">
-                             <!-- 更多下拉菜单 -->
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-light border text-secondary dropdown-toggle"
-                                        type="button"
-                                        data-bs-toggle="dropdown"
-                                        data-bs-boundary="viewport"
-                                        aria-expanded="false">
-                                    操作
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-3 mt-1 p-2" style="min-width: 200px; z-index: 1050;">
-                                    <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">查看信息</h6></li>
-                                    <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('items.view', id=reservation.item.id) }}"><i class="bi bi-eye me-2 text-primary"></i>查看物品</a></li>
-                                    <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('reservations.item_reservations', item_id=reservation.item.id) }}"><i class="bi bi-calendar3 me-2 text-info"></i>该物品预约表</a></li>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-light border text-secondary dropdown-toggle"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    data-bs-boundary="viewport"
+                                    aria-expanded="false">
+                                操作
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-3 mt-1 p-2" style="min-width: 200px; z-index: 1050;">
+                                <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">查看信息</h6></li>
+                                <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('items.view', id=reservation.item.id) }}"><i class="bi bi-eye me-2 text-primary"></i>查看物品</a></li>
+                                <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('reservations.item_reservations', item_id=reservation.item.id) }}"><i class="bi bi-calendar3 me-2 text-info"></i>该物品预约表</a></li>
 
-                                    {% if current_user.is_admin() or (reservation.user_id == current_user.id and reservation.status in ['scheduled', 'active']) %}
-                                    <li><hr class="dropdown-divider my-2"></li>
-                                    <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">变更状态</h6></li>
-                                    <li>
-                                        <button class="dropdown-item rounded-2 py-2 text-warning" type="button" data-bs-toggle="modal" data-bs-target="#cancelModal{{ reservation.id }}">
-                                            <i class="bi bi-x-circle me-2"></i>取消预约
-                                        </button>
-                                    </li>
-                                    {% endif %}
+                                {% if current_user.is_admin() or (reservation.user_id == current_user.id and reservation.status in ['scheduled', 'active']) %}
+                                <li><hr class="dropdown-divider my-2"></li>
+                                <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">变更状态</h6></li>
+                                <li>
+                                    <button class="dropdown-item rounded-2 py-2 text-warning" type="button" data-bs-toggle="modal" data-bs-target="#cancelModal{{ reservation.id }}">
+                                        <i class="bi bi-x-circle me-2"></i>取消预约
+                                    </button>
+                                </li>
+                                {% endif %}
 
-                                    {% if current_user.is_admin() %}
-                                    <li>
-                                        <button class="dropdown-item rounded-2 py-2 text-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteModal{{ reservation.id }}">
-                                            <i class="bi bi-trash me-2"></i>删除记录
-                                        </button>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                            </div>
+                                {% if current_user.is_admin() %}
+                                <li>
+                                    <button class="dropdown-item rounded-2 py-2 text-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteModal{{ reservation.id }}">
+                                        <i class="bi bi-trash me-2"></i>删除记录
+                                    </button>
+                                </li>
+                                {% endif %}
+                            </ul>
                         </div>
 
-                        <!-- 模态框 (仅取消) -->
+                        <!-- 模态框 (保持原样，省略具体内容以节省篇幅) -->
                         {% if (current_user.is_admin() or reservation.user_id == current_user.id) and reservation.status in ['scheduled', 'active'] %}
                             <div class="modal fade text-start" id="cancelModal{{ reservation.id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
@@ -177,11 +188,11 @@
                                             <h5 class="modal-title">取消预约</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
-                                        <div class="modal-body p-4">
-                                            <p>确定要取消对 <strong>"{{ reservation.item.name }}"</strong> 的预约吗？</p>
+                                        <div class="modal-body p-4 text-start">
+                                            <p>确定要取消物品 <strong>"{{ reservation.item.name }}"</strong> 的预约吗？</p>
                                         </div>
                                         <div class="modal-footer bg-light">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">保留</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">暂不取消</button>
                                             <form action="{{ url_for('reservations.cancel', reservation_id=reservation.id) }}" method="post">
                                                 <button type="submit" class="btn btn-warning">确认取消</button>
                                             </form>
@@ -199,7 +210,7 @@
                                             <h5 class="modal-title">删除记录</h5>
                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
-                                        <div class="modal-body p-4">
+                                        <div class="modal-body p-4 text-start">
                                             <p class="fw-bold">⚠️ 警告：此操作将永久删除该预约记录！</p>
                                         </div>
                                         <div class="modal-footer bg-light">
@@ -218,9 +229,8 @@
             </tbody>
         </table>
     </div>
-</div> <!-- Card 结束 -->
+</div>
 
-<!-- 分页控件 (在 Card 外面) -->
 <div class="mt-4 d-flex justify-content-center">
     {{ macros.render_pagination(pagination, 'reservations.all_reservations', status=request.args.get('status'), item_name=request.args.get('item_name'), username=request.args.get('username')) }}
 </div>

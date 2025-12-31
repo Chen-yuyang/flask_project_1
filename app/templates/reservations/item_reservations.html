@@ -4,108 +4,120 @@
 {% block title %}物品预约记录 - {{ item.name }}{% endblock %}
 
 {% block content %}
-<!-- 页面标题与操作按钮 -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h1>物品预约记录</h1>
-        <p class="text-muted">物品名称：<a href="{{ url_for('items.view', id=item.id) }}">{{ item.name }}</a></p>
-        <p class="text-muted">空间路径：{{ item.space.get_path() }}</p>
+        <h1 class="h2 fw-bold text-dark mb-1">物品预约记录</h1>
+        <p class="text-muted mb-0">物品：<a href="{{ url_for('items.view', id=item.id) }}" class="text-decoration-none fw-bold">{{ item.name }}</a></p>
     </div>
     {% if current_user.is_authenticated %}
     <div class="d-flex gap-2">
-        <a href="{{ url_for('reservations.all_reservations') }}" class="btn btn-outline-secondary">
-            返回查看所有预约
+        <a href="{{ url_for('reservations.all_reservations') }}" class="btn btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>所有预约
         </a>
-        <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-primary">
-            新增预约
+        <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-primary rounded-pill px-3">
+            <i class="bi bi-plus-lg me-1"></i>新增预约
         </a>
     </div>
     {% endif %}
 </div>
 
-<!-- 预约列表 -->
 {% if reservations %}
-<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-    <div class="table-responsive">
+<!-- 修复1：移除 overflow-hidden -->
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-secondary border-bottom">
+            <!-- 修复2：应用统一表头风格 -->
+            <thead class="bg-light border-bottom">
                 <tr>
-                    <th>序号</th>
-                    <th>预约人</th>
-                    <th>预约时间段</th>
-                    <th>预约备注</th>
-                    <th>状态</th>
-                    <th>操作</th>
+                    <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
+                    <th scope="col" class="text-muted small fw-bold text-uppercase py-3">预约人</th>
+                    <th scope="col" class="text-muted small fw-bold text-uppercase py-3">预约时间段</th>
+                    <th scope="col" class="text-muted small fw-bold text-uppercase py-3">备注</th>
+                    <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
+                    <th scope="col" class="text-end text-muted small fw-bold text-uppercase py-3 pe-4">操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for reservation in reservations %}
                 <tr>
-                    <td>{{ (pagination.page - 1) * pagination.per_page + loop.index }}</td>
-                    <td>{{ reservation.user.username }}</td>
-                    <td>
-                        {{ reservation.reservation_start.strftime('%Y-%m-%d %H:%M') }} 至<br>
-                        {{ reservation.reservation_end.strftime('%Y-%m-%d %H:%M') }}
+                    <td class="text-center text-secondary fw-medium">
+                        {{ (pagination.page - 1) * pagination.per_page + loop.index }}
                     </td>
-                    <td>{{ reservation.notes or '无' }}</td>
                     <td>
+                        <div class="d-flex align-items-center">
+                            <span class="fw-bold text-dark">{{ reservation.user.username }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small">
+                            <span class="d-block">{{ reservation.reservation_start.strftime('%Y-%m-%d %H:%M') }}</span>
+                            <span class="text-muted">至</span>
+                            <span class="d-block">{{ reservation.reservation_end.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                    </td>
+                    <td class="text-muted small">{{ reservation.notes or '-' }}</td>
+                    <td class="text-center">
                         {% set status_map = {
                             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
                             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
                         } %}
+                        {% set status_desc = {
+                            'scheduled': '时间到自动生效',
+                            'active': '请在结束前归还',
+                            'conflicted': '物品未归还',
+                            'expired': '超24小时未使用',
+                            'cancelled': '手动取消',
+                            'used': '已转为借用记录'
+                        } %}
                         {% set badge_color = {
                             'scheduled': 'info',
                             'active': 'success',
-                            'conflicted': 'dark',
+                            'conflicted': 'danger',
                             'expired': 'danger',
                             'cancelled': 'secondary',
                             'used': 'warning'
                         } %}
-                        <span class="badge bg-{{ badge_color[reservation.status] }} fs-6">
+
+                        <span class="badge rounded-pill bg-{{ badge_color[reservation.status] }} bg-opacity-10 text-{{ badge_color[reservation.status] }} border border-{{ badge_color[reservation.status] }} border-opacity-10 px-3 py-2">
                             {{ status_map[reservation.status] }}
                         </span>
-                        {% if reservation.status == 'expired' %}
-                            <span class="badge bg-dark">超24小时未使用</span>
-                        {% elif reservation.status == 'conflicted' %}
-                            <span class="badge bg-danger">物品未归还</span>
-                        {% endif %}
+
+                        <!-- 修复3：添加状态说明 -->
+                        <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                            {{ status_desc[reservation.status] }}
+                        </div>
                     </td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            {% if current_user.id == reservation.user_id or current_user.is_admin() %}
-                                {% if reservation.status in ['scheduled', 'active'] %}
-                                    {% if reservation.is_active() %}
-                                    <form action="{{ url_for('reservations.use_reservation', reservation_id=reservation.id) }}" method="post" style="display: inline;">
-                                        <button type="submit" class="btn btn-sm btn-success"
-                                                onclick="return confirm('确定要使用此预约吗？将创建借用记录。')">
-                                            使用物品
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal{{ reservation.id }}">
-                                        取消预约
-                                    </button>
-                                {% endif %}
+                    <td class="text-end pe-4">
+                        <div class="d-flex justify-content-end gap-2">
+                            {% if reservation.is_active() and (current_user.id == reservation.user_id or current_user.is_admin()) %}
+                            <form action="{{ url_for('reservations.use_reservation', reservation_id=reservation.id) }}" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-success text-white px-2"
+                                        onclick="return confirm('确定要使用此预约吗？')">
+                                    <i class="bi bi-play-fill me-1"></i>使用
+                                </button>
+                            </form>
                             {% endif %}
-                            <a href="{{ url_for('items.view', id=item.id) }}" class="btn btn-sm btn-info">查看物品</a>
+
+                            {% if (current_user.id == reservation.user_id or current_user.is_admin()) and reservation.status in ['scheduled', 'active'] %}
+                            <button type="button" class="btn btn-sm btn-outline-danger px-2" data-bs-toggle="modal" data-bs-target="#cancelModal{{ reservation.id }}">
+                                取消
+                            </button>
+                            {% endif %}
                         </div>
 
-                        <!-- 取消预约模态框 -->
+                        <!-- 取消模态框 -->
                         {% if (current_user.id == reservation.user_id or current_user.is_admin()) and reservation.status in ['scheduled', 'active'] %}
-                        <div class="modal fade" id="cancelModal{{ reservation.id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
+                        <div class="modal fade text-start" id="cancelModal{{ reservation.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow">
                                     <div class="modal-header bg-danger text-white">
                                         <h5 class="modal-title">取消预约</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <div class="modal-body">
-                                        <p>确定要取消物品 <strong>"{{ item.name }}"</strong> 的预约吗？</p>
-                                        <div class="alert alert-warning mt-2">
-                                            ❗ 取消后该时间段将开放给其他用户预约
-                                        </div>
+                                    <div class="modal-body p-4 text-start">
+                                        <p>确定要取消此预约吗？</p>
                                     </div>
-                                    <div class="modal-footer">
+                                    <div class="modal-footer bg-light">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                                         <form action="{{ url_for('reservations.cancel', reservation_id=reservation.id) }}" method="post">
                                             <button type="submit" class="btn btn-danger">确认取消</button>
@@ -123,17 +135,20 @@
     </div>
 </div>
 
-<!-- 分页控件 (在 Card 外面) -->
 <div class="mt-4 d-flex justify-content-center">
     {{ macros.render_pagination(pagination, 'reservations.item_reservations', item_id=item.id) }}
 </div>
 
 {% else %}
-<div class="alert alert-info text-center">
-    暂无该物品的预约记录
-    {% if current_user.is_authenticated %}
-    <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="alert-link">立即预约</a>
-    {% endif %}
+<div class="card border-0 shadow-sm rounded-4 text-center py-5">
+    <div class="card-body">
+        <h5 class="text-muted fw-normal">暂无该物品的预约记录</h5>
+        {% if current_user.is_authenticated %}
+        <div class="mt-3">
+            <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-primary rounded-pill px-4">立即预约</a>
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
 {% endblock %}
