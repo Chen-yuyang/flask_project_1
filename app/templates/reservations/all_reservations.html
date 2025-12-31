@@ -70,7 +70,7 @@
 
 <!-- 预约列表 -->
 {% if reservations %}
-<div class="card border-0 shadow-sm rounded-4">
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-secondary border-bottom">
@@ -130,11 +130,6 @@
                         {% else %}
                             <span class="badge rounded-pill bg-secondary px-3 py-2">{{ status_map[reservation.status] }}</span>
                         {% endif %}
-
-                        <!-- 附加状态提示 -->
-                        {% if reservation.status == 'expired' %}
-                            <div class="text-danger small mt-1" style="font-size: 0.7rem;">超期未使用</div>
-                        {% endif %}
                     </td>
                     <td class="text-end pe-4">
                         <div class="d-flex justify-content-end gap-2">
@@ -173,7 +168,7 @@
                             </div>
                         </div>
 
-                        <!-- 模态框逻辑保持不变... -->
+                        <!-- 模态框 (仅取消) -->
                         {% if (current_user.is_admin() or reservation.user_id == current_user.id) and reservation.status in ['scheduled', 'active'] %}
                             <div class="modal fade text-start" id="cancelModal{{ reservation.id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
@@ -183,11 +178,10 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body p-4">
-                                            <p>确定要取消物品 <strong>"{{ reservation.item.name }}"</strong> 的预约吗？</p>
-                                            <p class="small text-muted mb-0">取消后该时间段将立即释放给其他用户。</p>
+                                            <p>确定要取消对 <strong>"{{ reservation.item.name }}"</strong> 的预约吗？</p>
                                         </div>
                                         <div class="modal-footer bg-light">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">暂不取消</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">保留</button>
                                             <form action="{{ url_for('reservations.cancel', reservation_id=reservation.id) }}" method="post">
                                                 <button type="submit" class="btn btn-warning">确认取消</button>
                                             </form>
@@ -207,7 +201,6 @@
                                         </div>
                                         <div class="modal-body p-4">
                                             <p class="fw-bold">⚠️ 警告：此操作将永久删除该预约记录！</p>
-                                            <p>仅建议在数据清理时使用。</p>
                                         </div>
                                         <div class="modal-footer bg-light">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -225,16 +218,17 @@
             </tbody>
         </table>
     </div>
+</div> <!-- Card 结束 -->
 
-    <!-- 分页控件 -->
-    <div class="mt-4 d-flex justify-content-center">
-        {{ macros.render_pagination(pagination, 'reservations.all_reservations', status=request.args.get('status'), item_name=request.args.get('item_name'), username=request.args.get('username')) }}
-    </div>
+<!-- 分页控件 (在 Card 外面) -->
+<div class="mt-4 d-flex justify-content-center">
+    {{ macros.render_pagination(pagination, 'reservations.all_reservations', status=request.args.get('status'), item_name=request.args.get('item_name'), username=request.args.get('username')) }}
 </div>
+
 {% else %}
 <div class="card border-0 shadow-sm rounded-4 text-center py-5">
     <div class="card-body">
-        <h5 class="text-muted fw-normal">暂无预约记录</h5>
+        <h5 class="text-muted fw-normal">没有找到相关预约</h5>
     </div>
 </div>
 {% endif %}

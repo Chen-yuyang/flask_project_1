@@ -12,7 +12,6 @@
 <div class="card mb-4 border-0 shadow-sm rounded-4">
     <div class="card-body bg-light rounded-4 p-4">
         <form class="row g-3 align-items-end" action="{{ url_for('reservations.my_reservations') }}" method="get">
-
             <!-- 状态筛选 -->
             <div class="col-md-4">
                 <label class="form-label text-muted small fw-bold text-uppercase mb-1">预约状态</label>
@@ -57,7 +56,7 @@
 </div>
 
 {% if reservations %}
-<div class="card border-0 shadow-sm rounded-4">
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-secondary border-bottom">
@@ -109,7 +108,7 @@
                             <span class="badge rounded-pill bg-secondary px-3 py-2">{{ status_map[reservation.status] }}</span>
                         {% endif %}
 
-                        <!-- 动态提示 (倒计时等) -->
+                        <!-- 动态提示 -->
                         <div class="mt-1">
                         {% if reservation.is_scheduled() %}
                             {% set hours_left = (reservation.reservation_start - now_local).total_seconds() / 3600 %}
@@ -124,7 +123,7 @@
                     </td>
                     <td class="text-end pe-4">
                         <div class="d-flex justify-content-end gap-2 align-items-center">
-                            <!-- 1. 快捷操作：立即使用 (仅有效状态) -->
+                            <!-- 1. 快捷操作 -->
                             {% if reservation.is_active() %}
                             <form action="{{ url_for('reservations.use_reservation', reservation_id=reservation.id) }}" method="post" class="d-inline">
                                 <button type="submit" class="btn btn-sm btn-success text-white shadow-sm px-3 fw-medium"
@@ -169,7 +168,6 @@
                                     </div>
                                     <div class="modal-body p-4">
                                         <p>确定要取消对 <strong>"{{ reservation.item.name }}"</strong> 的预约吗？</p>
-                                        <p class="text-muted small mb-0">取消后，该时段将重新开放给其他人。</p>
                                     </div>
                                     <div class="modal-footer bg-light">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">保留</button>
@@ -187,12 +185,13 @@
             </tbody>
         </table>
     </div>
+</div> <!-- Card 结束 -->
 
-    <!-- 分页控件 -->
-    <div class="mt-4 d-flex justify-content-center">
-        {{ macros.render_pagination(pagination, 'reservations.my_reservations', status=request.args.get('status'), item_name=request.args.get('item_name')) }}
-    </div>
+<!-- 分页控件 (在 Card 外面) -->
+<div class="mt-4 d-flex justify-content-center">
+    {{ macros.render_pagination(pagination, 'reservations.my_reservations', status=request.args.get('status'), item_name=request.args.get('item_name')) }}
 </div>
+
 {% else %}
 <div class="card border-0 shadow-sm rounded-4 text-center py-5">
     <div class="card-body">
