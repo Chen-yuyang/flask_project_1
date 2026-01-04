@@ -1,13 +1,11 @@
 import os
+import re
 from datetime import datetime, timedelta
 
-from flask import current_app
+from flask import current_app, redirect, url_for, flash
 from flask_login import current_user
-
-import qrcode
-
 from functools import wraps
-from flask import redirect, url_for, flash
+import qrcode
 
 
 # 登录且是管理员才能访问的装饰器（适配role字段）
@@ -18,6 +16,7 @@ def admin_required(f):
             flash('您没有权限访问此页面（需要管理员权限）', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
+
     return decorated_function
 
 
@@ -46,7 +45,6 @@ def is_overdue(record, days=10):
     return (datetime.utcnow() - record.start_time) > timedelta(days=days)
 
 
-# 当前未使用
 def format_datetime(dt, format='%Y-%m-%d %H:%M'):
     """格式化日期时间"""
     if not dt:
@@ -54,7 +52,6 @@ def format_datetime(dt, format='%Y-%m-%d %H:%M'):
     return dt.strftime(format)
 
 
-# 当前未使用
 def check_reservation_availability(item_id, start_date, end_date, exclude_id=None):
     """
     检查物品在指定时间段是否可预约
@@ -76,11 +73,25 @@ def check_reservation_availability(item_id, start_date, end_date, exclude_id=Non
     return query.first() is None
 
 
-def generate_and_save_item_qrcode(item_id):
-    """生成物品二维码并保存到static/qrcodes目录，返回相对路径（如qrcodes/item_1_qrcode.png）"""
-    # 构建物品详情页URL（替换为实际访问地址）
-    url = f"http://192.168.1.101:8080/items/{item_id}"  # 替换为你的局域网IP或域名
-    # 生成二维码
+def sanitize_filename(filename):
+    """清理文件名中的非法字符"""
+    # 替换 Windows/Linux 文件系统中的非法字符为空
+    return re.sub(r'[\\/*?:"<>|]', "", str(filename)).strip()
+
+
+def generate_and_save_item_qrcode(item):
+    """
+    生成物品二维码并保存到static/qrcodes目录
+    文件名格式：物品名称_编号.png
+    """
+    # 1. 获取配置的 Base URL
+    base_url = current_app.config.get('QR_CODE_BASE_URL', 'http://127.0.0.1:5000')
+    base_url = base_url.rstrip('/')  # 去除末尾斜杠
+
+    # 2. 构建物品详情页URL
+    url = f"{base_url}/items/{item.id}"
+
+    # 3. 生成二维码
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
@@ -91,12 +102,21 @@ def generate_and_save_item_qrcode(item_id):
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
 
-    # 定义存储路径（static/qrcodes目录）
+    # 4. 构建文件名 (物品名称_编号.png)
+    safe_name = sanitize_filename(item.name)
+    safe_serial = sanitize_filename(item.serial_number)
+    # 如果文件名为空，回退到使用ID
+    if not safe_name or not safe_serial:
+        filename = f"item_{item.id}_qrcode.png"
+    else:
+        filename = f"{safe_name}_{safe_serial}.png"
+
+    # 5. 定义存储路径（static/qrcodes目录）
     qr_dir = os.path.join(current_app.root_path, 'static', 'qrcodes')
     os.makedirs(qr_dir, exist_ok=True)  # 确保目录存在
-    qr_filename = f"item_{item_id}_qrcode.png"
-    qr_path = os.path.join(qr_dir, qr_filename)
+
+    qr_path = os.path.join(qr_dir, filename)
     img.save(qr_path)
 
-    # 返回相对static目录的子路径（如qrcodes/item_1_qrcode.png）
-    return os.path.join('qrcodes', qr_filename)
+    # 6. 返回相对static目录的子路径（如qrcodes/名称_编号.png）
+    return os.path.join('qrcodes', filename)

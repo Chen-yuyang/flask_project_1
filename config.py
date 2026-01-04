@@ -33,3 +33,6 @@ class Config:
     RECORDS_PER_PAGE = 10
 
     BABEL_DEFAULT_TIMEZONE = 'Asia/Shanghai'
+
+    # 【新增】二维码生成的基础链接配置（替换为您的实际局域网IP或域名）
+    QR_CODE_BASE_URL = os.environ.get('QR_CODE_BASE_URL') or 'http://192.168.1.101:8080'

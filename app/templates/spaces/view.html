@@ -4,7 +4,6 @@
 {% block title %}{{ space.name }} - 物品管理系统{% endblock %}
 
 {% block content %}
-<!-- 空间信息与操作 -->
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>
         <h1 class="h2 fw-bold text-dark mb-1">{{ space.name }}</h1>
@@ -13,11 +12,9 @@
         </p>
     </div>
     <div class="d-flex gap-2">
-        <!-- 空间内搜索按钮 -->
         <button class="btn btn-outline-secondary shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#searchCollapse" aria-expanded="false">
             <i class="bi bi-search me-1"></i> 搜索物品
         </button>
-        <!-- 管理员操作 -->
         {% if current_user.is_admin() %}
         <div class="btn-group shadow-sm">
             <a href="{{ url_for('spaces.create', parent_id=space.id) }}" class="btn btn-light border text-secondary">
@@ -34,7 +31,6 @@
     </div>
 </div>
 
-<!-- 空间内搜索表单 (折叠区域) -->
 <div class="collapse mb-4" id="searchCollapse">
     <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary">
         <div class="card-body p-4">
@@ -51,7 +47,6 @@
     </div>
 </div>
 
-<!-- 子空间区域 -->
 <div class="mb-5">
     <div class="d-flex align-items-center mb-3">
         <h5 class="fw-bold text-dark mb-0 me-2">子空间</h5>
@@ -90,122 +85,154 @@
     {% endif %}
 </div>
 
-<!-- 物品区域 -->
 <div>
-    <div class="d-flex align-items-center mb-3">
-        <h5 class="fw-bold text-dark mb-0 me-2">物品列表</h5>
-        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">{{ pagination.total }}</span>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center">
+            <h5 class="fw-bold text-dark mb-0 me-2">物品列表</h5>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">{{ pagination.total }}</span>
+        </div>
+        {% if current_user.is_admin() and items %}
+        <button type="button" id="toggleBatchMode" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-list-check me-1"></i>二维码批量管理
+        </button>
+        {% endif %}
     </div>
 
     {% if items %}
-    <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary">
-        <div class="table-responsive-lg">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-secondary border-bottom">
-                    <tr>
-                        <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
-                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">名称</th>
-                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">功能</th>
-                        <th scope="col" class="text-muted small fw-bold text-uppercase py-3">编号</th>
-                        <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
-                        <th scope="col" class="text-end text-muted small fw-bold text-uppercase py-3 pe-4" style="min-width: 200px;">操作</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white">
-                    {% for item in items %}
-                    <tr>
-                        <td class="text-center text-secondary fw-medium">
-                            {{ (pagination.page - 1) * pagination.per_page + loop.index }}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('items.view', id=item.id) }}" class="text-primary text-decoration-none fw-bold">
-                                {{ item.name }}
-                            </a>
-                        </td>
-                        <td class="text-muted small">{{ item.function|truncate(20) or '-' }}</td>
-                        <td class="text-muted small font-monospace">{{ item.serial_number }}</td>
-                        <td class="text-center">
-                            {% if item.status == 'available' %}
-                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-10 px-3 py-2">可用</span>
-                            {% elif item.status == 'borrowed' %}
-                                <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 px-3 py-2">已借出</span>
-                            {% elif item.status == 'reserved' %}
-                                <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10 px-3 py-2">已预约</span>
-                            {% else %}
-                                <span class="badge rounded-pill bg-secondary px-3 py-2">{{ item.status }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end pe-4">
-                            <div class="d-flex justify-content-end gap-2 align-items-center">
-                                <!-- 快捷操作 -->
-                                {% if item.status == 'available' %}
-                                <a href="{{ url_for('records.create', item_id=item.id) }}"
-                                   class="btn btn-sm btn-success text-white shadow-sm px-3 fw-medium">
-                                    <i class="bi bi-play-fill me-1"></i>使用
-                                </a>
-                                {% endif %}
+    <form method="POST" action="{{ url_for('items.batch_qr_action') }}" id="batchForm">
+        <div class="card border-0 shadow-sm rounded-4 bg-body-tertiary">
 
-                                <!-- 更多下拉菜单 -->
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-light border text-secondary dropdown-toggle"
-                                            type="button"
-                                            data-bs-toggle="dropdown"
-                                            data-bs-boundary="viewport"
-                                            aria-expanded="false">
-                                        更多
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-3 mt-1 p-2" style="min-width: 200px; z-index: 1050;">
-                                        <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">业务操作</h6></li>
-                                        <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('items.view', id=item.id) }}"><i class="bi bi-eye me-2 text-primary"></i>查看详情</a></li>
-                                        <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('records.item_records', item_id=item.id) }}"><i class="bi bi-clock-history me-2 text-info"></i>使用记录</a></li>
-                                        <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('reservations.create', item_id=item.id) }}"><i class="bi bi-calendar-event me-2 text-warning"></i>预约物品</a></li>
+            <div id="batchToolbar" class="card-header bg-primary bg-opacity-10 border-0 py-3 d-none rounded-top-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check2-square text-primary me-2"></i>
+                        <span class="fw-bold text-primary small">已选: <span id="selectedCount">0</span></span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="action" value="generate" class="btn btn-primary btn-sm" onclick="return confirm('确定要重新生成二维码吗？')">
+                            <i class="bi bi-qr-code me-1"></i>生成
+                        </button>
+                        <button type="submit" name="action" value="download" class="btn btn-success btn-sm">
+                            <i class="bi bi-download me-1"></i>下载
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-                                        {% if current_user.is_admin() %}
-                                        <li><hr class="dropdown-divider my-2"></li>
-                                        <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">管理操作</h6></li>
-                                        <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('items.edit', id=item.id) }}"><i class="bi bi-pencil me-2 text-primary"></i>编辑物品</a></li>
-                                        <li>
-                                            <button class="dropdown-item rounded-2 py-2 text-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}">
-                                                <i class="bi bi-trash me-2"></i>删除物品
-                                            </button>
-                                        </li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- 删除模态框 -->
+            <div class="table-responsive-lg">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-secondary border-bottom">
+                        <tr>
                             {% if current_user.is_admin() %}
-                            <div class="modal fade text-start" id="deleteModal{{ item.id }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content border-0 shadow">
-                                        <div class="modal-header bg-danger text-white">
-                                            <h5 class="modal-title">确认删除</h5>
-                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body p-4">
-                                            <p class="mb-2">确定要删除物品 <strong class="text-dark fs-5">"{{ item.name }}"</strong> 吗？</p>
-                                            <p class="text-danger small mb-0"><i class="bi bi-exclamation-triangle me-1"></i> 此操作不可恢复。</p>
-                                        </div>
-                                        <div class="modal-footer bg-light">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                                            <form action="{{ url_for('items.delete', id=item.id) }}" method="post">
-                                                <button type="submit" class="btn btn-danger">确认删除</button>
-                                            </form>
+                            <th scope="col" class="py-3 ps-3 batch-col d-none" style="width: 40px;">
+                                <input class="form-check-input" type="checkbox" id="selectAll">
+                            </th>
+                            {% endif %}
+                            <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
+                            <th scope="col" class="text-muted small fw-bold text-uppercase py-3">名称</th>
+                            <th scope="col" class="text-muted small fw-bold text-uppercase py-3">功能</th>
+                            <th scope="col" class="text-muted small fw-bold text-uppercase py-3">编号</th>
+                            <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
+                            <th scope="col" class="text-end text-muted small fw-bold text-uppercase py-3 pe-4" style="min-width: 200px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        {% for item in items %}
+                        <tr>
+                            {% if current_user.is_admin() %}
+                            <td class="ps-3 batch-col d-none">
+                                <input class="form-check-input item-checkbox" type="checkbox" name="item_ids" value="{{ item.id }}">
+                            </td>
+                            {% endif %}
+                            <td class="text-center text-secondary fw-medium">
+                                {{ (pagination.page - 1) * pagination.per_page + loop.index }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('items.view', id=item.id) }}" class="text-primary text-decoration-none fw-bold">
+                                    {{ item.name }}
+                                </a>
+                            </td>
+                            <td class="text-muted small">{{ item.function|truncate(20) or '-' }}</td>
+                            <td class="text-muted small font-monospace">{{ item.serial_number }}</td>
+                            <td class="text-center">
+                                {% if item.status == 'available' %}
+                                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-10 px-3 py-2">可用</span>
+                                {% elif item.status == 'borrowed' %}
+                                    <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 px-3 py-2">已借出</span>
+                                {% elif item.status == 'reserved' %}
+                                    <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10 px-3 py-2">已预约</span>
+                                {% else %}
+                                    <span class="badge rounded-pill bg-secondary px-3 py-2">{{ item.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex justify-content-end gap-2 align-items-center">
+                                    {% if item.status == 'available' %}
+                                    <a href="{{ url_for('records.create', item_id=item.id) }}"
+                                       class="btn btn-sm btn-success text-white shadow-sm px-3 fw-medium">
+                                        <i class="bi bi-play-fill me-1"></i>使用
+                                    </a>
+                                    {% endif %}
+
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-light border text-secondary dropdown-toggle"
+                                                type="button"
+                                                data-bs-toggle="dropdown"
+                                                data-bs-boundary="viewport"
+                                                aria-expanded="false">
+                                            更多
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-3 mt-1 p-2" style="min-width: 200px; z-index: 1050;">
+                                            <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">业务操作</h6></li>
+                                            <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('items.view', id=item.id) }}"><i class="bi bi-eye me-2 text-primary"></i>查看详情</a></li>
+                                            <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('records.item_records', item_id=item.id) }}"><i class="bi bi-clock-history me-2 text-info"></i>使用记录</a></li>
+                                            <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('reservations.create', item_id=item.id) }}"><i class="bi bi-calendar-event me-2 text-warning"></i>预约物品</a></li>
+
+                                            {% if current_user.is_admin() %}
+                                            <li><hr class="dropdown-divider my-2"></li>
+                                            <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted my-1">管理操作</h6></li>
+                                            <li><a class="dropdown-item rounded-2 py-2" href="{{ url_for('items.edit', id=item.id) }}"><i class="bi bi-pencil me-2 text-primary"></i>编辑物品</a></li>
+                                            <li>
+                                                <button class="dropdown-item rounded-2 py-2 text-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}">
+                                                    <i class="bi bi-trash me-2"></i>删除物品
+                                                </button>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {% if current_user.is_admin() %}
+                                <div class="modal fade text-start" id="deleteModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title">确认删除</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body p-4">
+                                                <p class="mb-2">确定要删除物品 <strong class="text-dark fs-5">"{{ item.name }}"</strong> 吗？</p>
+                                                <p class="text-danger small mb-0"><i class="bi bi-exclamation-triangle me-1"></i> 此操作不可恢复。</p>
+                                            </div>
+                                            <div class="modal-footer bg-light">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                <form action="{{ url_for('items.delete', id=item.id) }}" method="post">
+                                                    <button type="submit" class="btn btn-danger">确认删除</button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    </form>
 
-    <!-- 添加分页控件 -->
     <div class="mt-4 d-flex justify-content-center">
         {{ macros.render_pagination(pagination, 'spaces.view', id=space.id) }}
     </div>
@@ -226,4 +253,56 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 批量管理功能脚本
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('toggleBatchMode');
+        const batchToolbar = document.getElementById('batchToolbar');
+        const batchCols = document.querySelectorAll('.batch-col');
+        const selectAll = document.getElementById('selectAll');
+        const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+        const countSpan = document.getElementById('selectedCount');
+
+        function updateCount() {
+            const checkedCount = document.querySelectorAll('.item-checkbox:checked').length;
+            if(countSpan) countSpan.textContent = checkedCount;
+        }
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                const isHidden = batchToolbar.classList.contains('d-none');
+
+                if (isHidden) {
+                    batchToolbar.classList.remove('d-none');
+                    batchCols.forEach(el => el.classList.remove('d-none'));
+                    this.innerHTML = '<i class="bi bi-x-lg me-1"></i>退出批量';
+                    this.classList.replace('btn-outline-primary', 'btn-outline-danger');
+                } else {
+                    batchToolbar.classList.add('d-none');
+                    batchCols.forEach(el => el.classList.add('d-none'));
+                    this.innerHTML = '<i class="bi bi-list-check me-1"></i>批量管理';
+                    this.classList.replace('btn-outline-danger', 'btn-outline-primary');
+
+                    if (selectAll) selectAll.checked = false;
+                    itemCheckboxes.forEach(cb => cb.checked = false);
+                    updateCount();
+                }
+            });
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                itemCheckboxes.forEach(cb => cb.checked = this.checked);
+                updateCount();
+            });
+        }
+
+        itemCheckboxes.forEach(cb => {
+            cb.addEventListener('change', updateCount);
+        });
+    });
+</script>
 {% endblock %}

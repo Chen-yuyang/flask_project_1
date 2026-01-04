@@ -1,4 +1,7 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+import os
+import io
+import zipfile
+from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file, current_app
 from flask_login import login_required, current_user
 from datetime import datetime
 
@@ -38,11 +41,10 @@ def all_items():
     # 默认按 ID 排序，确保分页顺序稳定
     items_query = items_query.order_by(Item.id.asc())
 
-    # 【修复】改用 paginate
+    # 使用 paginate
     pagination = items_query.paginate(page=page, per_page=per_page, error_out=False)
     items = pagination.items
 
-    # 【修复】将 pagination 传递给模板
     return render_template('items/all_items.html', items=items, pagination=pagination)
 
 
@@ -98,10 +100,10 @@ def create(space_id):
             created_by=current_user.id
         )
         db.session.add(item)
-        db.session.commit()  # 首次提交：获取item.id（自增主键）
+        db.session.commit()  # 首次提交：获取item.id
 
-        # 生成并保存二维码（关键新增代码）
-        qr_path = generate_and_save_item_qrcode(item.id)  # 生成二维码
+        # 生成并保存二维码（修改：传入item对象）
+        qr_path = generate_and_save_item_qrcode(item)
         item.barcode_path = qr_path  # 保存路径到物品记录
         db.session.commit()  # 二次提交：保存二维码路径
 
@@ -132,13 +134,15 @@ def edit(id):
         item.status = form.status.data
         item.space_id = form.space_id.data
 
-        # 补全二维码逻辑
+        db.session.commit()  # 先保存名称更改
+
+        # 补全二维码逻辑 (修改：传入item对象)
         if not item.barcode_path:
-            qr_path = generate_and_save_item_qrcode(item.id)
+            qr_path = generate_and_save_item_qrcode(item)
             item.barcode_path = qr_path
+            db.session.commit()  # 保存二维码路径
             flash(f'已自动为物品 "{item.name}" 补全二维码', 'info')
 
-        db.session.commit()
         flash(f'物品 "{item.name}" 更新成功')
         return redirect(url_for('items.view', id=id))
 
@@ -163,6 +167,60 @@ def delete(id):
     db.session.commit()
     flash(f'物品 "{item.name}" 已删除')
 
-    # 如果是在所有物品页面删除，最好返回所有物品页面，但为了简化逻辑，返回空间页面也是合理的
-    # 或者返回 request.referrer
     return redirect(url_for('spaces.view', id=space_id))
+
+
+# 【新增】二维码批量操作路由
+@bp.route('/batch_qr', methods=['POST'])
+@login_required
+def batch_qr_action():
+    if not current_user.is_admin():
+        flash('没有权限执行此操作', 'danger')
+        return redirect(request.referrer or url_for('items.all_items'))
+
+    action = request.form.get('action')
+    item_ids = request.form.getlist('item_ids')
+
+    if not item_ids:
+        flash('请先选择需要操作的物品', 'warning')
+        return redirect(request.referrer or url_for('items.all_items'))
+
+    items = Item.query.filter(Item.id.in_(item_ids)).all()
+
+    if action == 'generate':
+        # 批量生成/重新生成
+        count = 0
+        for item in items:
+            qr_path = generate_and_save_item_qrcode(item)
+            item.barcode_path = qr_path
+            count += 1
+        db.session.commit()
+        flash(f'成功为 {count} 个物品生成了二维码', 'success')
+
+    elif action == 'download':
+        # 批量打包下载
+        memory_file = io.BytesIO()
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for item in items:
+                # 检查二维码是否存在，不存在则生成
+                full_path = None
+                if item.barcode_path:
+                    full_path = os.path.join(current_app.root_path, 'static', item.barcode_path)
+
+                if not full_path or not os.path.exists(full_path):
+                    item.barcode_path = generate_and_save_item_qrcode(item)
+                    db.session.commit()
+                    full_path = os.path.join(current_app.root_path, 'static', item.barcode_path)
+
+                # 获取文件名放入压缩包
+                arcname = os.path.basename(item.barcode_path)
+                zf.write(full_path, arcname)
+
+        memory_file.seek(0)
+        return send_file(
+            memory_file,
+            download_name=f'qrcodes_{datetime.now().strftime("%Y%m%d%H%M")}.zip',
+            as_attachment=True
+        )
+
+    return redirect(request.referrer or url_for('items.all_items'))
