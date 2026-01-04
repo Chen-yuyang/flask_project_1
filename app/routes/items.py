@@ -35,13 +35,14 @@ def all_items():
     if status:
         items_query = items_query.filter(Item.status == status)
 
-    # 按创建时间或ID倒序排列（可选，这里默认按ID）
+    # 默认按 ID 排序，确保分页顺序稳定
     items_query = items_query.order_by(Item.id.asc())
 
-    # 使用 paginate
+    # 【修复】改用 paginate
     pagination = items_query.paginate(page=page, per_page=per_page, error_out=False)
     items = pagination.items
 
+    # 【修复】将 pagination 传递给模板
     return render_template('items/all_items.html', items=items, pagination=pagination)
 
 
@@ -130,6 +131,13 @@ def edit(id):
         item.function = form.function.data
         item.status = form.status.data
         item.space_id = form.space_id.data
+
+        # 补全二维码逻辑
+        if not item.barcode_path:
+            qr_path = generate_and_save_item_qrcode(item.id)
+            item.barcode_path = qr_path
+            flash(f'已自动为物品 "{item.name}" 补全二维码', 'info')
+
         db.session.commit()
         flash(f'物品 "{item.name}" 更新成功')
         return redirect(url_for('items.view', id=id))
