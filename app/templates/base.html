@@ -9,20 +9,62 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        .sidebar { height: 100vh; position: sticky; top: 0; overflow-y: auto; }
+        /* 优化1：设置全局浅灰背景，使白色卡片更突出 */
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+        }
+
+        /* 优化2：侧边栏改为白色背景并添加右侧边框，增加层次感 */
+        .sidebar {
+            height: calc(100vh - 56px); /* 减去顶部导航栏高度 */
+            position: sticky;
+            top: 56px; /* 紧贴导航栏下方 */
+            overflow-y: auto;
+            background-color: #ffffff;
+            border-right: 1px solid #dee2e6;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.02); /* 极淡的阴影 */
+            z-index: 100;
+        }
+
+        /* 侧边栏层级缩进样式 */
         .space-level-0 { padding-left: 10px; }
         .space-level-1 { padding-left: 30px; }
         .space-level-2 { padding-left: 50px; }
+
         .navbar-brand { font-weight: bold; }
-        .content { padding: 20px 0; }
+
+        /* 内容区域内边距 */
+        .content { padding: 20px; }
+
         .flash-message { margin-top: 10px; }
+
+        /* 优化3：美化侧边栏链接交互 */
+        .sidebar .nav-link {
+            color: #495057;
+            border-radius: 4px;
+            margin-bottom: 2px;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #e9ecef;
+            color: #0d6efd;
+        }
+        /* 针对折叠按钮的微调 */
+        .space-toggle {
+            color: #6c757d;
+        }
+        .space-toggle:hover {
+            color: #0d6efd;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">物品管理系统</a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                <i class="bi bi-box-seam me-2"></i>物品管理系统
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -57,13 +99,15 @@
 
                 {% if current_user.is_authenticated %}
                 <form class="d-flex me-3" action="{{ url_for('main.global_search') }}" method="get">
-                    <input class="form-control me-2"
-                           type="search"
-                           name="query"
-                           placeholder="搜索物品/记录/空间..."
-                           aria-label="Search"
-                           style="width: 40%; min-width: 250px; height: 38px;">
-                    <button class="btn btn-light" type="submit">搜索</button>
+                    <div class="input-group">
+                        <input class="form-control border-0"
+                               type="search"
+                               name="query"
+                               placeholder="搜索物品/记录/空间..."
+                               aria-label="Search"
+                               style="min-width: 250px;">
+                        <button class="btn btn-light" type="submit"><i class="bi bi-search"></i></button>
+                    </div>
                 </form>
                 {% endif %}
 
@@ -71,15 +115,15 @@
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            {{ current_user.username }}
+                            <i class="bi bi-person-circle me-1"></i>{{ current_user.username }}
                             {% if current_user.is_admin() %}
-                            <span class="badge bg-light text-dark ms-1">管理员</span>
+                            <span class="badge bg-light text-dark ms-1" style="font-size: 0.7em;">管理员</span>
                             {% endif %}
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">修改密码</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}"><i class="bi bi-key me-2"></i>修改密码</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">退出登录</a></li>
+                            <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>退出登录</a></li>
                         </ul>
                     </li>
                     {% else %}
@@ -98,19 +142,18 @@
     <div class="container-fluid">
         <div class="row">
             {% if current_user.is_authenticated %}
-            <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse show" id="sidebarMenu">
-                <div class="position-sticky pt-3">
-                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <!-- 移除 bg-light，样式改由 CSS .sidebar 控制 -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse show" id="sidebarMenu">
+                <div class="position-sticky pt-3 pb-3">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-2 mb-3 text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 1px;">
                         <span>空间导航</span>
                     </h6>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <div class="d-flex align-items-center">
-                                <span class="btn btn-link nav-link p-0 me-2 invisible">
-                                    <i class="bi bi-chevron-down small"></i>
-                                </span>
+                            <div class="d-flex align-items-center px-2">
+                                <span class="p-0 me-2" style="width: 24px;"></span>
                                 <a class="nav-link px-2 flex-grow-1" href="{{ url_for('spaces.index') }}">
-                                    <i class="bi bi-folder2 me-2"></i> 所有空间
+                                    <i class="bi bi-folder2 me-2 text-primary"></i> 所有空间
                                 </a>
                             </div>
                         </li>
@@ -119,35 +162,34 @@
                             {% for item in spaces recursive %}
                             <li class="nav-item">
                                 {% if item.children %}
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center px-2">
                                     <button
                                         class="btn btn-link nav-link p-0 me-2 space-toggle"
+                                        style="width: 24px; text-decoration: none;"
                                         data-space-id="{{ item.space.id }}"
                                         data-bs-toggle="collapse"
                                         data-bs-target="#spaceCollapse-{{ item.space.id }}"
                                         aria-expanded="true">
-                                        <i class="bi bi-chevron-down small"></i>
+                                        <i class="bi bi-chevron-down" style="font-size: 0.8rem;"></i>
                                     </button>
                                     <a class="nav-link px-2 flex-grow-1"
                                        href="{{ url_for('spaces.view', id=item.space.id) }}">
-                                        <i class="bi bi-folder me-2"></i> {{ item.space.name }}
+                                        <i class="bi bi-folder me-2 text-warning"></i> {{ item.space.name }}
                                     </a>
                                 </div>
 
-                                <div id="spaceCollapse-{{ item.space.id }}" class="collapse show ms-4">
+                                <div id="spaceCollapse-{{ item.space.id }}" class="collapse show ms-4 border-start border-light ps-1">
                                     <ul class="nav flex-column">
                                         {{ loop(item.children) }}
                                     </ul>
                                 </div>
 
                                 {% else %}
-                                <div class="d-flex align-items-center">
-                                    <span class="btn btn-link nav-link p-0 me-2 invisible">
-                                        <i class="bi bi-chevron-down small"></i>
-                                    </span>
+                                <div class="d-flex align-items-center px-2">
+                                    <span class="p-0 me-2" style="width: 24px;"></span>
                                     <a class="nav-link px-2 flex-grow-1"
                                        href="{{ url_for('spaces.view', id=item.space.id) }}">
-                                        <i class="bi bi-folder2-open me-2"></i> {{ item.space.name }}
+                                        <i class="bi bi-folder2-open me-2 text-secondary"></i> {{ item.space.name }}
                                     </a>
                                 </div>
                                 {% endif %}
@@ -159,15 +201,20 @@
             </div>
             {% endif %}
 
-            <main class="{% if current_user.is_authenticated %}col-md-9 ms-sm-auto col-lg-10{% else %}col-12{% endif %} px-md-4 content">
+            <main class="{% if current_user.is_authenticated %}col-md-9 ms-sm-auto col-lg-10{% else %}col-12{% endif %} content">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show flash-message" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show shadow-sm border-0" role="alert">
+                        {% if category == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>{% endif %}
+                        {% if category == 'danger' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>{% endif %}
+                        {% if category == 'warning' %}<i class="bi bi-exclamation-circle-fill me-2"></i>{% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
                 {% endif %}
                 {% endwith %}
 

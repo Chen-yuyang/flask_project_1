@@ -145,3 +145,41 @@ def edit(id):
         return redirect(url_for('spaces.index'))
 
     return render_template('spaces/edit.html', title='编辑空间', form=form, space=space)
+
+
+@bp.route('/delete/<int:id>', methods=['POST'])
+@login_required
+def delete(id):
+    # 1. 权限检查：只有管理员可以删除空间
+    if not current_user.is_admin():
+        flash('没有权限删除空间', 'danger')
+        return redirect(url_for('spaces.view', id=id))
+
+    space = Space.query.get_or_404(id)
+    parent_id = space.parent_id  # 记录父ID以便删除后跳转
+
+    # 2. 安全检查：如果有子空间或物品，禁止删除
+    # (虽然前端有 disabled 属性，但后端必须进行二次校验)
+    if space.children.count() > 0:
+        flash(f'无法删除：该空间包含 {space.children.count()} 个子空间，请先处理子空间。', 'warning')
+        return redirect(url_for('spaces.edit', id=id))
+
+    if space.items.count() > 0:
+        flash(f'无法删除：该空间包含 {space.items.count()} 个物品，请先移除或转移物品。', 'warning')
+        return redirect(url_for('spaces.edit', id=id))
+
+    # 3. 执行删除
+    try:
+        db.session.delete(space)
+        db.session.commit()
+        flash(f'空间 "{space.name}" 已成功删除', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'删除失败：{str(e)}', 'danger')
+        return redirect(url_for('spaces.view', id=id))
+
+    # 4. 删除后跳转逻辑
+    # 如果有父空间，返回父空间视图；否则返回顶级空间列表
+    if parent_id:
+        return redirect(url_for('spaces.view', id=parent_id))
+    return redirect(url_for('spaces.index'))
