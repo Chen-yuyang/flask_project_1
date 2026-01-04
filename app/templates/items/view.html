@@ -198,13 +198,13 @@
                          class="img-fluid"
                          style="width: 180px; height: 180px;">
                 </div>
-                <!-- 下载按钮，文件名格式为 物品名称_编号.png -->
+                <!-- 下载按钮，强制重命名为 物品名称_编号.png -->
                 <div class="d-grid">
-                    <a href="{{ url_for('static', filename=fixed_path) }}"
-                       class="btn btn-outline-primary"
-                       download="{{ item.name }}_{{ item.serial_number }}.png">
+                    <button type="button"
+                            onclick="forceDownload('{{ url_for('static', filename=fixed_path) }}', '{{ item.name }}_{{ item.serial_number }}.png')"
+                            class="btn btn-outline-primary">
                         <i class="bi bi-download me-1"></i> 下载二维码
-                    </a>
+                    </button>
                 </div>
             {% else %}
                 <div class="py-4 text-muted">
@@ -223,4 +223,27 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 强制下载并重命名函数
+    function forceDownload(url, filename) {
+        fetch(url)
+            .then(response => response.blob())
+            .then(blob => {
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            })
+            .catch(error => {
+                console.error('下载失败:', error);
+                alert('下载失败，请尝试右键另存为。');
+            });
+    }
+</script>
 {% endblock %}

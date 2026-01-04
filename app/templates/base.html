@@ -9,21 +9,19 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        /* 优化1：设置全局浅灰背景，使白色卡片更突出 */
         body {
             background-color: #f4f6f9;
             color: #333;
         }
 
-        /* 优化2：侧边栏改为白色背景并添加右侧边框，增加层次感 */
         .sidebar {
-            height: calc(100vh - 56px); /* 减去顶部导航栏高度 */
+            height: calc(100vh - 56px);
             position: sticky;
-            top: 56px; /* 紧贴导航栏下方 */
+            top: 56px;
             overflow-y: auto;
             background-color: #ffffff;
             border-right: 1px solid #dee2e6;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.02); /* 极淡的阴影 */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.02);
             z-index: 100;
         }
 
@@ -33,13 +31,9 @@
         .space-level-2 { padding-left: 50px; }
 
         .navbar-brand { font-weight: bold; }
-
-        /* 内容区域内边距 */
         .content { padding: 20px; }
-
         .flash-message { margin-top: 10px; }
 
-        /* 优化3：美化侧边栏链接交互 */
         .sidebar .nav-link {
             color: #495057;
             border-radius: 4px;
@@ -49,7 +43,7 @@
             background-color: #e9ecef;
             color: #0d6efd;
         }
-        /* 针对折叠按钮的微调 */
+
         .space-toggle {
             color: #6c757d;
         }
@@ -142,7 +136,6 @@
     <div class="container-fluid">
         <div class="row">
             {% if current_user.is_authenticated %}
-            <!-- 移除 bg-light，样式改由 CSS .sidebar 控制 -->
             <div class="col-md-3 col-lg-2 d-md-block sidebar collapse show" id="sidebarMenu">
                 <div class="position-sticky pt-3 pb-3">
                     <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-2 mb-3 text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 1px;">
@@ -153,7 +146,8 @@
                             <div class="d-flex align-items-center px-2">
                                 <span class="p-0 me-2" style="width: 24px;"></span>
                                 <a class="nav-link px-2 flex-grow-1" href="{{ url_for('spaces.index') }}">
-                                    <i class="bi bi-folder2 me-2 text-primary"></i> 所有空间
+                                    <!-- 已移除颜色类 text-primary -->
+                                    <i class="bi bi-folder2 me-2"></i> 所有空间
                                 </a>
                             </div>
                         </li>
@@ -174,7 +168,8 @@
                                     </button>
                                     <a class="nav-link px-2 flex-grow-1"
                                        href="{{ url_for('spaces.view', id=item.space.id) }}">
-                                        <i class="bi bi-folder me-2 text-warning"></i> {{ item.space.name }}
+                                        <!-- 已移除颜色类 text-warning -->
+                                        <i class="bi bi-folder me-2"></i> {{ item.space.name }}
                                     </a>
                                 </div>
 
@@ -189,7 +184,8 @@
                                     <span class="p-0 me-2" style="width: 24px;"></span>
                                     <a class="nav-link px-2 flex-grow-1"
                                        href="{{ url_for('spaces.view', id=item.space.id) }}">
-                                        <i class="bi bi-folder2-open me-2 text-secondary"></i> {{ item.space.name }}
+                                        <!-- 已移除颜色类 text-secondary -->
+                                        <i class="bi bi-folder2-open me-2"></i> {{ item.space.name }}
                                     </a>
                                 </div>
                                 {% endif %}
