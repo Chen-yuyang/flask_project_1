@@ -3,82 +3,204 @@
 {% block title %}首页 - 物品管理系统{% endblock %}
 
 {% block content %}
-<!-- 欢迎区域 -->
-<div class="jumbotron bg-light p-4 rounded-3 mt-3">
-    <h1 class="display-4">欢迎使用物品管理系统</h1>
-    <p class="lead">支持多级空间管理、物品借用跟踪、预约管理及逾期提醒，助力高效物品管理。</p>
-    <hr class="my-4">
-
-    <!-- 登录/未登录展示不同内容 -->
-    {% if current_user.is_authenticated %}
-    <p class="mb-3">当前角色：<strong>{{ '管理员' if current_user.is_admin() else '普通用户' }}</strong></p>
-    <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-primary btn-lg" href="{{ url_for('spaces.index') }}" role="button">空间管理</a>
-        <a class="btn btn-secondary btn-lg" href="{{ url_for('items.all_items') }}" role="button">所有物品</a>
-        <a class="btn btn-success btn-lg" href="{{ url_for('records.my_records') }}" role="button">我的记录</a>
-        <a class="btn btn-info btn-lg" href="{{ url_for('reservations.my_reservations') }}" role="button">我的预约</a>
-    </div>
-    {% else %}
-    <p class="mb-3">请登录后使用系统全部功能</p>
-    <div class="d-flex gap-2">
-        <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}" role="button">登录</a>
-        <a class="btn btn-success btn-lg" href="{{ url_for('auth.register') }}" role="button">注册</a>
-    </div>
-    {% endif %}
-</div>
-
-<!-- 已登录用户的数据卡片 -->
-{% if current_user.is_authenticated %}
-<div class="row mt-5 gap-4">
-    <!-- 最近使用记录 -->
-    <div class="col-md-6">
-        <div class="card shadow h-100">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">最近使用的物品</h5>
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- 顶部 Hero 区域 -->
+        <div class="card shadow-sm border-0 rounded-4 mb-5 bg-primary text-white overflow-hidden position-relative">
+            <!-- 装饰背景 -->
+            <div class="position-absolute top-0 end-0 p-3 opacity-25">
+                <i class="bi bi-box-seam display-1"></i>
             </div>
-            <div class="card-body">
-                {% if recent_records %}
-                <ul class="list-group">
-                    {% for record in recent_records %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{{ url_for('items.view', id=record.item.id) }}">{{ record.item.name }}</a>
-                        <span class="badge bg-{{ 'warning' if record.status == 'using' else 'success' }}">
-                            {{ '使用中' if record.status == 'using' else '已归还' }}
-                        </span>
-                    </li>
-                    {% endfor %}
-                </ul>
+            <div class="card-body p-5 position-relative">
+                <h1 class="display-5 fw-bold mb-3">欢迎使用物品管理系统</h1>
+                <p class="lead mb-4 opacity-75" style="max-width: 600px;">
+                    高效追踪物品流转，轻松管理空间资源。支持多级空间、扫码借还、预约冲突检测及逾期智能提醒。
+                </p>
+
+                {% if not current_user.is_authenticated %}
+                <div class="d-flex gap-3">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg px-4 fw-bold text-primary shadow-sm">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>立即登录
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light btn-lg px-4 fw-bold">
+                        <i class="bi bi-person-plus me-2"></i>注册账号
+                    </a>
+                </div>
                 {% else %}
-                <p class="text-muted text-center">暂无使用记录</p>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-white bg-opacity-25 border border-white border-opacity-25 rounded-pill px-3 py-2">
+                        <i class="bi bi-person-circle me-1"></i>
+                        当前用户：{{ current_user.username }}
+                    </span>
+                    <span class="badge bg-{{ 'warning text-dark' if current_user.is_admin() else 'info text-white' }} bg-opacity-75 border border-white border-opacity-25 rounded-pill px-3 py-2">
+                        {{ '管理员' if current_user.is_admin() else '普通用户' }}
+                    </span>
+                </div>
                 {% endif %}
             </div>
         </div>
-    </div>
 
-    <!-- 我的预约 -->
-    <div class="col-md-6">
-        <div class="card shadow h-100">
-            <div class="card-header bg-info text-white">
-                <h5 class="card-title mb-0">我的预约</h5>
+        {% if current_user.is_authenticated %}
+        <!-- 快捷操作区 -->
+        <h5 class="fw-bold text-dark mb-3 px-1"><i class="bi bi-grid-fill me-2 text-primary"></i>快捷入口</h5>
+        <div class="row g-3 mb-5">
+            <div class="col-6 col-md-3">
+                <a href="{{ url_for('spaces.index') }}" class="card h-100 shadow-sm border-0 rounded-4 hover-shadow text-decoration-none transition-hover">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex p-3 mb-3">
+                            <i class="bi bi-building fs-4"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">空间管理</h6>
+                        <small class="text-muted">浏览与管理区域</small>
+                    </div>
+                </a>
             </div>
-            <div class="card-body">
-                {% if my_reservations %}
-                <ul class="list-group">
-                    {% for reservation in my_reservations %}
-                    <li class="list-group-item">
-                        <a href="{{ url_for('items.view', id=reservation.item.id) }}">{{ reservation.item.name }}</a>
-                        <small class="d-block text-muted mt-1">
-                            {{ reservation.reservation_start.strftime('%Y-%m-%d') }} 至 {{ reservation.reservation_end.strftime('%Y-%m-%d') }}
-                        </small>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="text-muted text-center">暂无预约记录</p>
-                {% endif %}
+            <div class="col-6 col-md-3">
+                <a href="{{ url_for('items.all_items') }}" class="card h-100 shadow-sm border-0 rounded-4 hover-shadow text-decoration-none transition-hover">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex p-3 mb-3">
+                            <i class="bi bi-box-seam fs-4"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">所有物品</h6>
+                        <small class="text-muted">查询与借用物品</small>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{{ url_for('records.my_records') }}" class="card h-100 shadow-sm border-0 rounded-4 hover-shadow text-decoration-none transition-hover">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex p-3 mb-3">
+                            <i class="bi bi-clock-history fs-4"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">我的记录</h6>
+                        <small class="text-muted">查看借还历史</small>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{{ url_for('reservations.my_reservations') }}" class="card h-100 shadow-sm border-0 rounded-4 hover-shadow text-decoration-none transition-hover">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-info bg-opacity-10 text-info rounded-circle d-inline-flex p-3 mb-3">
+                            <i class="bi bi-calendar-check fs-4"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">我的预约</h6>
+                        <small class="text-muted">管理预约申请</small>
+                    </div>
+                </a>
             </div>
         </div>
+
+        <div class="row g-4">
+            <!-- 左侧：最近使用记录 -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-clock me-2 text-warning"></i>最近使用</h5>
+                        <a href="{{ url_for('records.my_records') }}" class="text-decoration-none small text-muted">查看全部 &rarr;</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4 text-muted small fw-bold text-uppercase">物品</th>
+                                        <th class="text-muted small fw-bold text-uppercase">状态</th>
+                                        <th class="text-end pe-4 text-muted small fw-bold text-uppercase">时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if recent_records %}
+                                        {% for record in recent_records %}
+                                        <tr>
+                                            <td class="ps-4">
+                                                <a href="{{ url_for('items.view', id=record.item.id) }}" class="text-dark fw-bold text-decoration-none">
+                                                    {{ record.item.name }}
+                                                </a>
+                                                <div class="small text-muted">{{ record.item.space.get_path() }}</div>
+                                            </td>
+                                            <td>
+                                                {% if record.status == 'using' %}
+                                                    <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger px-2">使用中</span>
+                                                {% else %}
+                                                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success px-2">已归还</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end pe-4 text-muted small">
+                                                {{ record.start_time.strftime('%m-%d %H:%M') }}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="3" class="text-center py-5 text-muted">
+                                                <i class="bi bi-inbox display-6 d-block mb-2 opacity-25"></i>
+                                                暂无使用记录
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：我的有效预约 -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-event me-2 text-info"></i>当前预约</h5>
+                        <a href="{{ url_for('reservations.my_reservations') }}" class="text-decoration-none small text-muted">查看全部 &rarr;</a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if my_reservations %}
+                        <ul class="list-group list-group-flush">
+                            {% for reservation in my_reservations %}
+                            <li class="list-group-item border-0 px-4 py-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <a href="{{ url_for('items.view', id=reservation.item.id) }}" class="fw-bold text-dark text-decoration-none">
+                                            {{ reservation.item.name }}
+                                        </a>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 ms-2">有效</span>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ reservation.item.space.name }}
+                                    </small>
+                                </div>
+                                <div class="bg-light rounded-3 p-2 d-flex align-items-center justify-content-between">
+                                    <small class="text-dark">
+                                        <i class="bi bi-calendar-range me-1 text-muted"></i>
+                                        {{ reservation.reservation_start.strftime('%m-%d %H:%M') }}
+                                        <span class="text-muted mx-1">至</span>
+                                        {{ reservation.reservation_end.strftime('%m-%d %H:%M') }}
+                                    </small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-calendar-x display-6 d-block mb-2 opacity-25"></i>
+                            暂无有效预约
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
+
+<style>
+    /* 简单的悬停提升效果 */
+    .transition-hover {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-shadow:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+</style>
 {% endblock %}

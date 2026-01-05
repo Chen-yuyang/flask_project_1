@@ -5,35 +5,54 @@
 {% block content %}
 <!-- 搜索条件与结果统计 -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>搜索结果："{{ query }}"</h1>
-    <span class="badge bg-primary fs-6">{{ total_results }} 个匹配项</span>
+    <div>
+        <h1 class="h2 fw-bold text-dark mb-1">搜索结果</h1>
+        <p class="text-muted mb-0">关键词：<span class="fw-bold text-primary">"{{ query }}"</span></p>
+    </div>
+    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 rounded-pill px-3 py-2 fs-6">
+        共找到 {{ total_results }} 个匹配项
+    </span>
 </div>
 
-<!-- 新增：搜索范围说明（用info类型alert，醒目且不刺眼） -->
-<div class="alert alert-info mb-4" role="alert">
-    <h6 class="alert-heading">搜索范围说明</h6>
-    <ul class="mb-0 mt-2">
-        <li><strong>物品搜索</strong>：匹配物品名称、功能描述、物品编号（支持模糊匹配）</li>
-        <li><strong>使用记录搜索</strong>：匹配使用地点、空间路径（支持模糊匹配）</li>
-        <li><strong>空间搜索</strong>：匹配空间名称（支持模糊匹配）</li>
-    </ul>
+<!-- 搜索范围说明 -->
+{% if total_results == 0 %}
+<div class="alert alert-light border shadow-sm rounded-4 text-center py-5 mb-4">
+    <i class="bi bi-search display-1 text-secondary opacity-25 mb-3 d-block"></i>
+    <h5 class="text-muted">未找到与 "{{ query }}" 匹配的内容</h5>
+    <p class="text-secondary small">建议尝试缩短关键词、使用更通用的词汇，或检查输入拼写。</p>
 </div>
+{% else %}
+<div class="alert alert-info border-0 bg-info bg-opacity-10 rounded-4 mb-4 d-flex align-items-start" role="alert">
+    <i class="bi bi-info-circle-fill text-info fs-5 me-3 mt-1"></i>
+    <div>
+        <h6 class="alert-heading fw-bold text-info-emphasis">匹配说明</h6>
+        <ul class="mb-0 small text-info-emphasis ps-3">
+            <li><strong>物品</strong>：匹配名称、功能描述、唯一编号</li>
+            <li><strong>记录</strong>：匹配使用地点、空间路径</li>
+            <li><strong>空间</strong>：匹配空间名称</li>
+        </ul>
+    </div>
+</div>
+{% endif %}
 
 <!-- 标签页切换 -->
-<ul class="nav nav-tabs mb-4" id="searchTabs" role="tablist">
+<ul class="nav nav-pills mb-4 gap-2" id="searchTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button" role="tab">
-            物品 ({{ results['items']|length }})  <!-- 修复：.items → ['items'] -->
+        <button class="nav-link active rounded-pill px-4" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button" role="tab">
+            <i class="bi bi-box-seam me-2"></i>物品
+            <span class="badge bg-white text-primary ms-1 rounded-pill">{{ results['items']|length }}</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="records-tab" data-bs-toggle="tab" data-bs-target="#records" type="button" role="tab">
-            使用记录 ({{ results['records']|length }})  <!-- 修复：.records → ['records'] -->
+        <button class="nav-link rounded-pill px-4" id="records-tab" data-bs-toggle="tab" data-bs-target="#records" type="button" role="tab">
+            <i class="bi bi-clock-history me-2"></i>使用记录
+            <span class="badge bg-secondary text-white ms-1 rounded-pill">{{ results['records']|length }}</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="spaces-tab" data-bs-toggle="tab" data-bs-target="#spaces" type="button" role="tab">
-            空间 ({{ results['spaces']|length }})  <!-- 修复：.spaces → ['spaces'] -->
+        <button class="nav-link rounded-pill px-4" id="spaces-tab" data-bs-toggle="tab" data-bs-target="#spaces" type="button" role="tab">
+            <i class="bi bi-building me-2"></i>空间
+            <span class="badge bg-secondary text-white ms-1 rounded-pill">{{ results['spaces']|length }}</span>
         </button>
     </li>
 </ul>
@@ -42,120 +61,195 @@
 <div class="tab-content" id="searchTabsContent">
     <!-- 物品结果 -->
     <div class="tab-pane fade show active" id="items" role="tabpanel">
-        {% if results['items'] %}  <!-- 修复：.items → ['items'] -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover shadow">
-                <thead class="table-primary">
-                    <tr>
-                        <th>名称</th>
-                        <th>空间路径</th>
-                        <th>编号</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in results['items'] %}  <!-- 修复：.items → ['items'] -->
-                    <tr>
-                        <td>{{ item.name }}</td>
-                        <td>
-                            <a href="{{ url_for('spaces.view', id=item.space.id) }}">{{ item.space.get_path() }}</a>
-                        </td>
-                        <td>{{ item.serial_number }}</td>
-                        <td>
-                            <span class="badge bg-{{
-                                'success' if item.status == 'available' else
-                                'warning' if item.status == 'reserved' else 'danger'
-                            }}">
-                                {{ item.status|replace('available', '可用')|replace('reserved', '已预约')|replace('borrowed', '已借出') }}
-                            </span>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('items.view', id=item.id) }}" class="btn btn-sm btn-info">查看</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {% if results['items'] %}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-secondary border-bottom">
+                        <tr>
+                            <th scope="col" class="ps-4 text-muted small fw-bold text-uppercase py-3">名称</th>
+                            <th scope="col" class="text-muted small fw-bold text-uppercase py-3">位置</th>
+                            <th scope="col" class="text-muted small fw-bold text-uppercase py-3">编号</th>
+                            <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
+                            <th scope="col" class="text-end pe-4 text-muted small fw-bold text-uppercase py-3">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        {% for item in results['items'] %}
+                        <tr>
+                            <td class="ps-4">
+                                <a href="{{ url_for('items.view', id=item.id) }}" class="text-primary fw-bold text-decoration-none">
+                                    {{ item.name }}
+                                </a>
+                                <div class="small text-muted text-truncate" style="max-width: 200px;">{{ item.function or '无描述' }}</div>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('spaces.view', id=item.space.id) }}" class="badge bg-light text-secondary text-decoration-none border fw-normal">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ item.space.get_path() }}
+                                </a>
+                            </td>
+                            <td class="font-monospace text-muted small">{{ item.serial_number }}</td>
+                            <td class="text-center">
+                                {% if item.status == 'available' %}
+                                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-10 px-3 py-2">可用</span>
+                                {% elif item.status == 'borrowed' %}
+                                    <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 px-3 py-2">已借出</span>
+                                {% elif item.status == 'reserved' %}
+                                    <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10 px-3 py-2">已预约</span>
+                                {% else %}
+                                    <span class="badge rounded-pill bg-secondary px-3 py-2">{{ item.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{{ url_for('items.view', id=item.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    查看
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
         {% else %}
-        <div class="alert alert-info text-center">没有找到匹配的物品</div>
+        <div class="text-center py-5 text-muted bg-light rounded-4">
+            <p class="mb-0">暂无匹配物品</p>
+        </div>
         {% endif %}
     </div>
 
     <!-- 记录结果 -->
     <div class="tab-pane fade" id="records" role="tabpanel">
-        {% if results['records'] %}  <!-- 修复：.records → ['records'] -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover shadow">
-                <thead class="table-primary">
-                    <tr>
-                        <th>物品</th>
-                        <th>使用人</th>
-                        <th>空间路径</th>
-                        <th>使用地点</th>
-                        <th>时间范围</th>
-                        <th>状态</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in results['records'] %}  <!-- 修复：.records → ['records'] -->
-                    <tr>
-                        <td>
-                            <a href="{{ url_for('items.view', id=record.item.id) }}">{{ record.item.name }}</a>
-                        </td>
-                        <td>{{ record.user.username }}</td>
-                        <td>{{ record.space_path }}</td>
-                        <td>{{ record.usage_location }}</td>
-                        <td>
-                            {{ record.start_time.strftime('%Y-%m-%d') }}
-                            {% if record.return_time %}
-                            - {{ record.return_time.strftime('%Y-%m-%d') }}
-                            {% else %}
-                            - 至今
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge bg-{{ 'success' if record.status == 'returned' else 'danger' }}">
-                                {{ '已归还' if record.status == 'returned' else '使用中' }}
-                            </span>
-                            {% if record.is_overdue() %}
-                            <span class="badge bg-dark">已逾期</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {% if results['records'] %}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-secondary border-bottom">
+                        <tr>
+                            <th scope="col" class="ps-4 text-muted small fw-bold text-uppercase py-3">物品</th>
+                            <th scope="col" class="text-muted small fw-bold text-uppercase py-3">使用人</th>
+                            <th scope="col" class="text-muted small fw-bold text-uppercase py-3">使用地点</th>
+                            <th scope="col" class="text-muted small fw-bold text-uppercase py-3">时间</th>
+                            <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in results['records'] %}
+                        <tr>
+                            <td class="ps-4">
+                                <a href="{{ url_for('items.view', id=record.item.id) }}" class="fw-bold text-decoration-none text-dark">
+                                    {{ record.item.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded-circle p-1 me-2 text-secondary d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                        <i class="bi bi-person-fill small"></i>
+                                    </div>
+                                    <span>{{ record.user.username }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 150px;" title="{{ record.usage_location }}">
+                                    {{ record.usage_location }}
+                                </div>
+                                <small class="text-muted">{{ record.space_path }}</small>
+                            </td>
+                            <td class="small text-muted">
+                                <div><i class="bi bi-arrow-right-short text-success me-1"></i>{{ record.start_time.strftime('%Y-%m-%d') }}</div>
+                                {% if record.return_time %}
+                                <div><i class="bi bi-arrow-left-short text-secondary me-1"></i>{{ record.return_time.strftime('%Y-%m-%d') }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if record.status == 'using' %}
+                                    <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 px-3 py-2">使用中</span>
+                                    {% if record.is_overdue() %}
+                                    <div class="mt-1"><span class="badge bg-dark rounded-pill" style="font-size: 0.65rem;">已逾期</span></div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 px-3 py-2">已归还</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
         {% else %}
-        <div class="alert alert-info text-center">没有找到匹配的使用记录</div>
+        <div class="text-center py-5 text-muted bg-light rounded-4">
+            <p class="mb-0">暂无匹配记录</p>
+        </div>
         {% endif %}
     </div>
 
     <!-- 空间结果 -->
     <div class="tab-pane fade" id="spaces" role="tabpanel">
-        {% if results['spaces'] %}  <!-- 修复：.spaces → ['spaces'] -->
-        <div class="row gap-3">
-            {% for space in results['spaces'] %}  <!-- 修复：.spaces → ['spaces'] -->
-            <div class="col-md-4">
-                <div class="card shadow h-100">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="card-title mb-0">{{ space.name }}</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text"><strong>路径：</strong>{{ space.get_path() }}</p>
-                        <p class="card-text"><strong>子空间：</strong>{{ space.children.count() }} 个</p>
-                        <p class="card-text"><strong>物品：</strong>{{ space.items.count() }} 个</p>
-                        <a href="{{ url_for('spaces.view', id=space.id) }}" class="btn btn-primary w-100">查看详情</a>
+        {% if results['spaces'] %}
+        <div class="row g-3">
+            {% for space in results['spaces'] %}
+            <div class="col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm rounded-4 hover-shadow transition-hover bg-body-tertiary">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-3">
+                            <h5 class="card-title fw-bold text-dark mb-1 text-truncate">
+                                <i class="bi bi-folder2 text-primary me-2"></i>{{ space.name }}
+                            </h5>
+                            <small class="text-muted d-block text-truncate" title="{{ space.get_path() }}">
+                                {{ space.get_path() }}
+                            </small>
+                        </div>
+
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between text-muted small mb-3 bg-white p-2 rounded-3 border">
+                                <span><i class="bi bi-layers me-1"></i>{{ space.children.count() }} 子空间</span>
+                                <span><i class="bi bi-box me-1"></i>{{ space.items.count() }} 物品</span>
+                            </div>
+                            <a href="{{ url_for('spaces.view', id=space.id) }}" class="btn btn-sm btn-outline-primary w-100 rounded-pill fw-medium">
+                                进入空间
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
         {% else %}
-        <div class="alert alert-info text-center">没有找到匹配的空间</div>
+        <div class="text-center py-5 text-muted bg-light rounded-4">
+            <p class="mb-0">暂无匹配空间</p>
+        </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+    /* 搜索页专用样式 */
+    .nav-pills .nav-link {
+        color: #6c757d;
+        background-color: transparent;
+        transition: all 0.2s;
+    }
+    .nav-pills .nav-link:hover {
+        background-color: #e9ecef;
+        color: #000;
+    }
+    .nav-pills .nav-link.active {
+        background-color: #0d6efd; /* Bootstrap primary */
+        color: white;
+        box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+    }
+    .nav-pills .nav-link.active .badge {
+        background-color: white !important;
+        color: #0d6efd !important;
+    }
+
+    .hover-shadow:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .transition-hover {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+</style>
 {% endblock %}
