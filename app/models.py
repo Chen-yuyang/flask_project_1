@@ -222,8 +222,6 @@ class Reservation(db.Model):
         return utc_aware.astimezone(LOCAL_TIMEZONE)
 
     # --- 优化后的状态判断逻辑 ---
-    # 我们主要依赖定时任务(tasks.py)来维护 status 字段
-    # 这些方法主要用于前端显示辅助判断，或者业务逻辑中的双重检查
 
     def is_scheduled(self):
         """判断是否处于“待开始”状态"""
@@ -232,10 +230,11 @@ class Reservation(db.Model):
     def is_active(self):
         """
         判断是否处于“有效可使用”状态
-        注：tasks.py 会保证 status='active' 时 item.status='available'
-        但为了安全，这里增加一个实时检查
+        【关键修改】：在新逻辑中，预约生效(active)时，物品会被自动锁定(reserved)。
+        因此不再要求 item.status == 'available'。
+        只要预约状态是 active，就代表当前用户拥有该物品的独占使用权。
         """
-        return self.status == 'active' and self.item.status == 'available'
+        return self.status == 'active'
 
     def is_expired(self):
         """判断是否“超期作废”"""

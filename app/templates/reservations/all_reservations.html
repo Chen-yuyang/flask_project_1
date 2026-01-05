@@ -68,12 +68,9 @@
 </div>
 
 {% if reservations %}
-<!-- 修复1：移除 overflow-hidden，防止菜单截断 -->
 <div class="card border-0 shadow-sm rounded-4">
-    <!-- 修复2：使用 table-responsive-lg，大屏不滚动，允许菜单溢出 -->
     <div class="table-responsive-lg">
         <table class="table table-hover align-middle mb-0">
-            <!-- 修复3：表头改为 table-secondary -->
             <thead class="table-secondary border-bottom">
                 <tr>
                     <th scope="col" class="text-center text-muted small fw-bold text-uppercase py-3" style="width: 60px;">序号</th>
@@ -120,14 +117,14 @@
                             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
                             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
                         } %}
-                        <!-- 修复4：状态说明文字 -->
+                        <!-- 【修改】文案更新 -->
                         {% set status_desc = {
                             'scheduled': '到点自动生效',
-                            'active': '请在结束前归还',
+                            'active': '物品锁定中',
                             'conflicted': '物品未归还',
-                            'expired': '超24小时未使用',
+                            'expired': '超期未使用',
                             'cancelled': '手动取消',
-                            'used': '已转为借用记录'
+                            'used': '已成功借用'
                         } %}
 
                         {% if reservation.status == 'scheduled' %}
@@ -191,6 +188,9 @@
                                         </div>
                                         <div class="modal-body p-4 text-start">
                                             <p>确定要取消物品 <strong>"{{ reservation.item.name }}"</strong> 的预约吗？</p>
+                                            {% if reservation.is_active() %}
+                                            <p class="text-success small"><i class="bi bi-info-circle me-1"></i>该物品当前为您锁定，取消后将立即释放。</p>
+                                            {% endif %}
                                         </div>
                                         <div class="modal-footer bg-light">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">暂不取消</button>
@@ -213,6 +213,9 @@
                                         </div>
                                         <div class="modal-body p-4 text-start">
                                             <p class="fw-bold">⚠️ 警告：此操作将永久删除该预约记录！</p>
+                                            {% if reservation.is_active() %}
+                                            <p class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>该物品当前处于锁定状态，删除记录将自动释放物品。</p>
+                                            {% endif %}
                                         </div>
                                         <div class="modal-footer bg-light">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>

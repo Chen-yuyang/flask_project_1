@@ -60,13 +60,14 @@
                             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
                             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
                         } %}
+                        <!-- 【修改】文案更新 -->
                         {% set status_desc = {
                             'scheduled': '到点自动生效',
-                            'active': '请在结束前归还',
+                            'active': '物品锁定中',
                             'conflicted': '物品未归还',
-                            'expired': '超24小时未使用',
+                            'expired': '超期未使用',
                             'cancelled': '手动取消',
-                            'used': '已转为借用记录'
+                            'used': '已成功借用'
                         } %}
 
                         <!-- 状态徽章：颜色逻辑 -->
@@ -93,7 +94,7 @@
                             <form action="{{ url_for('reservations.use_reservation', reservation_id=reservation.id) }}" method="post" style="display: inline;">
                                 <button type="submit" class="btn btn-sm btn-success text-white px-2"
                                         onclick="return confirm('确定要使用此预约吗？')">
-                                    <i class="bi bi-play-fill me-1"></i>使用
+                                    <i class="bi bi-box-arrow-in-down me-1"></i>借用
                                 </button>
                             </form>
                             {% endif %}
@@ -116,6 +117,9 @@
                                     </div>
                                     <div class="modal-body p-4 text-start">
                                         <p>确定要取消此预约吗？</p>
+                                        {% if reservation.is_active() %}
+                                        <p class="text-success small"><i class="bi bi-info-circle me-1"></i>取消后将立即释放物品锁定。</p>
+                                        {% endif %}
                                     </div>
                                     <div class="modal-footer bg-light">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
