@@ -221,27 +221,26 @@ class Reservation(db.Model):
         utc_aware = pytz.utc.localize(self._utc_created_at)
         return utc_aware.astimezone(LOCAL_TIMEZONE)
 
-    # 状态判断逻辑（结合物品归还状态）
+    # --- 优化后的状态判断逻辑 ---
+    # 我们主要依赖定时任务(tasks.py)来维护 status 字段
+    # 这些方法主要用于前端显示辅助判断，或者业务逻辑中的双重检查
+
     def is_scheduled(self):
         """判断是否处于“待开始”状态"""
-        now_utc = datetime.utcnow()
-        return self.status == 'scheduled' and now_utc < self._utc_reservation_start
+        return self.status == 'scheduled'
 
     def is_active(self):
-        """判断是否处于“有效可使用”状态"""
-        now_utc = datetime.utcnow()
-        # 需满足：状态为active + 物品已归还 + 在预约时段内
-        item = self.item
-        is_item_available = item.status == 'available'
-        is_in_time_range = self._utc_reservation_start <= now_utc <= self._utc_reservation_end
-        return self.status == 'active' and is_item_available and is_in_time_range
+        """
+        判断是否处于“有效可使用”状态
+        注：tasks.py 会保证 status='active' 时 item.status='available'
+        但为了安全，这里增加一个实时检查
+        """
+        return self.status == 'active' and self.item.status == 'available'
 
     def is_expired(self):
         """判断是否“超期作废”"""
-        now_utc = datetime.utcnow()
-        return self.status == 'expired' or (self.status == 'active' and now_utc - self._utc_reservation_start > timedelta(hours=24))
+        return self.status == 'expired'
 
     def is_conflicted(self):
         """判断是否因物品未归还导致冲突"""
-        item = self.item
-        return self.status == 'active' and item.status != 'available'
+        return self.status == 'conflicted'

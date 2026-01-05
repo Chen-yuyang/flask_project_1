@@ -134,6 +134,7 @@ def create(item_id):
         end_utc = end_local.astimezone(pytz.utc)
 
         # 检查重叠预约
+        # 【注意】我们不仅要检查 active/scheduled，还要检查 conflicted，因为 conflicted 随时可能变回 active
         overlapping = Reservation.query.filter_by(item_id=item_id).filter(
             or_(
                 Reservation.status == 'scheduled',
@@ -176,7 +177,8 @@ def cancel(reservation_id):
         flash('没有权限执行此操作', 'danger')
         return redirect(url_for('reservations.my_reservations'))
 
-    if not (reservation.is_scheduled() or reservation.is_active()):
+    # 【优化】允许取消 conflicted 状态的预约
+    if reservation.status not in ['scheduled', 'active', 'conflicted']:
         status_cn = {
             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
@@ -201,6 +203,7 @@ def use_reservation(reservation_id):
         flash('没有权限使用此预约', 'danger')
         return redirect(url_for('reservations.my_reservations'))
 
+    # 必须是 active 状态才能使用
     if not reservation.is_active():
         status_cn = {
             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
