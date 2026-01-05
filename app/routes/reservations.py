@@ -186,6 +186,10 @@ def cancel(reservation_id):
         flash(f'该预约状态为「{status_cn}」，无法取消', 'warning')
         return redirect(url_for('reservations.my_reservations'))
 
+    # 【新增】如果预约是 active 状态，则物品状态应该是 reserved，取消时需释放物品
+    if reservation.status == 'active' and reservation.item.status == 'reserved':
+        reservation.item.status = 'available'
+
     reservation.status = 'cancelled'
     db.session.commit()
 
@@ -204,18 +208,18 @@ def use_reservation(reservation_id):
         return redirect(url_for('reservations.my_reservations'))
 
     # 必须是 active 状态才能使用
-    if not reservation.is_active():
+    # 注意：现在 active 状态的物品 status 是 'reserved'，这是正常的
+    if reservation.status != 'active':
         status_cn = {
             'scheduled': '待开始', 'active': '有效', 'conflicted': '冲突',
             'expired': '已作废', 'cancelled': '已取消', 'used': '已使用'
         }.get(reservation.status, reservation.status)
-        flash(f'仅「有效且物品可用」的预约可使用，当前状态：{status_cn}', 'warning')
+        flash(f'仅「有效」的预约可使用，当前状态：{status_cn}', 'warning')
         return redirect(url_for('reservations.my_reservations'))
 
-    reservation.status = 'used'
-    db.session.commit()
-
-    flash('预约已转为使用状态，请在借用记录中完成登记', 'success')
+    # 【优化】不再此处更新状态，而是跳转到借用页面，由借用逻辑统一处理状态流转
+    # 这样可以确保用户填写使用地点等信息，并且防止逻辑割裂
+    flash('正在为您办理借用登记...', 'info')
     return redirect(url_for('records.create', item_id=reservation.item_id))
 
 
@@ -230,6 +234,10 @@ def delete(reservation_id):
     reservation = Reservation.query.get_or_404(reservation_id)
     item_name = reservation.item.name
     username = reservation.user.username
+
+    # 【新增】关键修复：如果删除的是Active状态的预约，必须释放物品状态
+    if reservation.status == 'active' and reservation.item.status == 'reserved':
+        reservation.item.status = 'available'
 
     db.session.delete(reservation)
     db.session.commit()

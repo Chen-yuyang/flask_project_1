@@ -20,6 +20,7 @@ def update_reservation_status(app_context):
             if now_utc >= res._utc_reservation_start:
                 if res.item.status == 'available':
                     res.status = 'active'
+                    res.item.status = 'reserved'  # 【新增】预约生效，锁定物品状态
                     # 可选：发送预约生效通知
                 else:
                     res.status = 'conflicted'
@@ -35,7 +36,7 @@ def update_reservation_status(app_context):
                 db.session.commit()
 
         # ===================================================
-        # 2. 处理 [冲突] (conflicted) -> [有效] / [作废] (新增逻辑)
+        # 2. 处理 [冲突] (conflicted) -> [有效] / [作废]
         # ===================================================
         # 场景：前一个人迟还了，现在还了，预约应自动恢复为有效
         conflicted_res = Reservation.query.filter_by(status='conflicted').all()
@@ -49,11 +50,12 @@ def update_reservation_status(app_context):
             # 如果物品变回可用，且仍在预约时段内，恢复为有效
             if res.item.status == 'available':
                 res.status = 'active'
+                res.item.status = 'reserved'  # 【新增】冲突解除，锁定物品状态
                 if res.user:
                     send_email(
                         to=res.user.email,
                         subject='预约已恢复有效',
-                        template='reservations/email/reservation_reminder.html', # 复用提醒模板
+                        template='reservations/email/reservation_reminder.html',  # 复用提醒模板
                         reservation=res
                     )
                 db.session.commit()
@@ -71,6 +73,10 @@ def update_reservation_status(app_context):
 
             if is_long_overdue or is_past_end_time:
                 res.status = 'expired'
+                # 【新增】如果物品当前状态是已预约（未被借走），则释放为可用
+                if res.item.status == 'reserved':
+                    res.item.status = 'available'
+
                 if res.user:
                     send_email(
                         to=res.user.email,

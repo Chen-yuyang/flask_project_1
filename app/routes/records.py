@@ -4,7 +4,7 @@ from datetime import datetime
 
 from app import db
 from app.forms.record_forms import RecordCreateForm, RecordReturnForm
-from app.models import Item, Record, Space, User
+from app.models import Item, Record, Space, User, Reservation
 
 bp = Blueprint('records', __name__)
 
@@ -113,9 +113,28 @@ def create(item_id):
     """创建使用记录（借用物品）"""
     item = Item.query.get_or_404(item_id)
 
+    # 【新增】检查是否存在属于当前用户的关联预约（Active 或 Scheduled）
+    # 如果是 Active，说明正好是预约时间；如果是 Scheduled，说明是提前来取
+    user_reservation = Reservation.query.filter_by(
+        item_id=item.id,
+        user_id=current_user.id
+    ).filter(
+        Reservation.status.in_(['active', 'scheduled'])
+    ).first()
+
     # 检查物品状态
-    if item.status != 'available':
-        flash(f'物品 "{item.name}" 当前不可用，状态：{item.status}')
+    if item.status == 'available':
+        # 物品可用，允许借用
+        # 但如果有预约（Scheduled状态，提前取货），应该关联处理，否则后面会变成Conflicted
+        pass
+    elif item.status == 'reserved':
+        # 如果是已预约状态，必须拥有有效预约（Active）
+        if not user_reservation or user_reservation.status != 'active':
+            flash(f'物品 "{item.name}" 已被其他用户预约，当前不可借用。', 'warning')
+            return redirect(url_for('items.view', id=item_id))
+    else:
+        # borrowed 或其他状态
+        flash(f'物品 "{item.name}" 当前不可用，状态：{item.status}', 'danger')
         return redirect(url_for('items.view', id=item_id))
 
     form = RecordCreateForm()
@@ -132,10 +151,14 @@ def create(item_id):
         # 更新物品状态
         item.status = 'borrowed'
 
+        # 【新增】消耗预约：如果存在有效或待开始的预约，将其状态更新为 used
+        if user_reservation:
+            user_reservation.status = 'used'
+
         db.session.add(record)
         db.session.commit()
 
-        flash(f'成功借用物品 "{item.name}"')
+        flash(f'成功借用物品 "{item.name}"', 'success')
         return redirect(url_for('items.view', id=item_id))
 
     return render_template('records/create.html', form=form, item=item)

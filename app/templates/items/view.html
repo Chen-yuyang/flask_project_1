@@ -70,15 +70,19 @@
 
                 <!-- 常用操作按钮组 -->
                 <div class="d-flex gap-3 mt-4 pt-3 border-top">
-                    {% if item.status == 'available' %}
+                    <!-- 按钮逻辑优化：根据 user_can_use 标志判断 -->
+                    {% if user_can_use %}
                     <a href="{{ url_for('records.create', item_id=item.id) }}" class="btn btn-success flex-grow-1">
-                        <i class="bi bi-play-fill me-1"></i> 立即使用
+                        <i class="bi bi-play-fill me-1"></i>
+                        {% if item.status == 'reserved' %}立即使用 (预约){% else %}立即使用{% endif %}
                     </a>
                     {% else %}
                     <button class="btn btn-light text-muted flex-grow-1" disabled>
-                        <i class="bi bi-slash-circle me-1"></i> 暂不可用
+                        <i class="bi bi-slash-circle me-1"></i>
+                        {% if item.status == 'reserved' %}被他人预约{% elif item.status == 'borrowed' %}已借出{% else %}暂不可用{% endif %}
                     </button>
                     {% endif %}
+
                     <a href="{{ url_for('reservations.create', item_id=item.id) }}" class="btn btn-warning text-dark flex-grow-1">
                         <i class="bi bi-calendar-plus me-1"></i> 预约物品
                     </a>
@@ -118,18 +122,18 @@
 
                 <!-- 有效预约 -->
                 {% if active_reservations %}
-                <h6 class="text-muted small fw-bold text-uppercase mt-3 mb-2">即将进行的预约</h6>
+                <h6 class="text-muted small fw-bold text-uppercase mt-3 mb-2">当前生效的预约</h6>
                 <ul class="list-group list-group-flush">
                     {% for res in active_reservations %}
                     <li class="list-group-item bg-transparent px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <i class="bi bi-calendar-event text-warning me-2"></i>
+                            <i class="bi bi-calendar-check text-success me-2"></i>
                             <strong>{{ res.user.username }}</strong>
                             <small class="text-muted ms-2">
                                 {{ res.reservation_start.strftime('%m-%d %H:%M') }} - {{ res.reservation_end.strftime('%m-%d %H:%M') }}
                             </small>
                         </div>
-                        <span class="badge bg-light text-dark border">已排期</span>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10">预约生效中</span>
                     </li>
                     {% endfor %}
                 </ul>

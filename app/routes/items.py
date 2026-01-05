@@ -62,7 +62,7 @@ def view(id):
     # 获取最近的使用记录
     recent_records = Record.query.filter_by(item_id=id).order_by(Record._utc_start_time.desc()).limit(5).all()
 
-    # 获取当前有效的预约
+    # 获取当前有效的预约（用于展示给管理员或提示冲突）
     active_reservations = Reservation.query.filter_by(
         item_id=id,
         status='active'
@@ -71,11 +71,28 @@ def view(id):
         Reservation._utc_reservation_end >= datetime.utcnow()
     ).all()
 
+    # 【新增】判断当前用户是否有权借用
+    # 条件1：物品可用
+    # 条件2：物品被预约（reserved），但预约人是当前用户
+    user_can_use = False
+    if item.status == 'available':
+        user_can_use = True
+    elif item.status == 'reserved':
+        # 检查是否存在属于当前用户的active预约
+        my_active_res = Reservation.query.filter_by(
+            item_id=id,
+            user_id=current_user.id,
+            status='active'
+        ).first()
+        if my_active_res:
+            user_can_use = True
+
     return render_template('items/view.html',
                            item=item,
                            current_record=current_record,
                            recent_records=recent_records,
-                           active_reservations=active_reservations)
+                           active_reservations=active_reservations,
+                           user_can_use=user_can_use)  # 传递标志位
 
 
 @bp.route('/create/<int:space_id>', methods=['GET', 'POST'])
