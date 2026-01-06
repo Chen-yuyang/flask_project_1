@@ -31,17 +31,20 @@ class Config:
     # 超级管理员配置
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
 
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_RECORD_QUERIES = True
-    FLASKY_POSTS_PER_PAGE = 20
-    FLASKY_SLOW_DB_QUERY_TIME = 0.5
-    SSL_REDIRECT = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False  # 减少内存消耗（不追踪对象的修改信号）
+
+    # SQLALCHEMY_RECORD_QUERIES = True  # 高级数据库调试设置
+    # FLASKY_SLOW_DB_QUERY_TIME = 0.5
+
+    # FLASKY_POSTS_PER_PAGE = 20  # 未使用
+
+    # SSL_REDIRECT = False  手动处理
 
     # 【保留你的自定义配置】：会话与分页
     PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
     ITEMS_PER_PAGE = 10
     RECORDS_PER_PAGE = 10
-    BABEL_DEFAULT_TIMEZONE = 'Asia/Shanghai'
+    # BABEL_DEFAULT_TIMEZONE = 'Asia/Shanghai' # 未使用
 
     # 【保留你的自定义配置】：二维码基础链接
     QR_CODE_BASE_URL = os.environ.get('QR_CODE_BASE_URL') or 'http://192.168.1.101:8080'

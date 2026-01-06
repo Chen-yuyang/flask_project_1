@@ -35,9 +35,9 @@ def create_app(config_name='default'):
     migrate.init_app(app, db)
 
     # SSL 重定向处理 (适配 config.py 中的配置)
-    if app.config.get('SSL_REDIRECT'):
-        from flask_sslify import SSLify
-        sslify = SSLify(app)
+    # if app.config.get('SSL_REDIRECT'):
+    #     from flask_sslify import SSLify
+    #     sslify = SSLify(app)
 
     # -------------------- 蓝图注册 (保留你原有的导入方式) --------------------
 
