@@ -31,6 +31,12 @@ class Config:
     # 超级管理员配置
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
 
+    # --- 新增：工程模式配置 ---
+    # 默认密钥为 'dev_engineer_key'，生产环境请务必通过环境变量设置
+    ENGINEER_ACCESS_KEY = os.environ.get('ENGINEER_ACCESS_KEY') or 'dev_engineer_key'
+    # 日志文件路径 (用于日志查看器)
+    LOG_FILE_PATH = os.path.join(basedir, 'logs', 'app.log')
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # 减少内存消耗（不追踪对象的修改信号）
 
     # SQLALCHEMY_RECORD_QUERIES = True  # 高级数据库调试设置

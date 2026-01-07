@@ -2,7 +2,7 @@ import os
 import re
 from datetime import datetime, timedelta
 
-from flask import current_app, redirect, url_for, flash
+from flask import current_app, redirect, url_for, flash, session
 from flask_login import current_user
 from functools import wraps
 import qrcode
@@ -31,6 +31,18 @@ def super_admin_required(f):
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
 
+    return decorated_function
+
+
+# 【新增】工程模式专用认证装饰器
+# 校验 Session 中的 is_engineer 标记，完全独立于 User 表
+def engineer_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('is_engineer'):
+            flash('请先进行工程模式认证', 'warning')
+            return redirect(url_for('engineer.login'))
+        return f(*args, **kwargs)
     return decorated_function
 
 

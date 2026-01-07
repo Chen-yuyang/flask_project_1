@@ -1,6 +1,8 @@
 import atexit
 import os
 import pytz
+import logging
+from logging.handlers import RotatingFileHandler
 
 from flask import Flask
 from flask_migrate import Migrate
@@ -34,6 +36,26 @@ def create_app(config_name='default'):
     mail.init_app(app)
     migrate.init_app(app, db)
 
+    # --- 新增：配置文件日志记录器 (为了支持工程模式的日志查看) ---
+    # 即使在开发环境，也将日志输出到文件，以便 dashboard 读取
+    log_file = app.config.get('LOG_FILE_PATH')
+    if log_file:
+        # 确保日志目录存在
+        log_dir = os.path.dirname(log_file)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        # 【关键修改】：显式指定 encoding='utf-8'，防止 Windows 下产生 GBK 日志
+        # 这里的 encoding='utf-8' 非常重要，它确保了写入的新日志可以被 engineer.py 正确读取
+        file_handler = RotatingFileHandler(log_file, maxBytes=1024 * 1024, backupCount=10, encoding='utf-8')
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+        app.logger.info("系统启动：日志文件处理器已配置 (UTF-8)")
+    # --------------------------------------------------------
+
     # SSL 重定向处理 (适配 config.py 中的配置)
     # if app.config.get('SSL_REDIRECT'):
     #     from flask_sslify import SSLify
@@ -62,6 +84,11 @@ def create_app(config_name='default'):
 
     from app.routes.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
+
+    # --- 新增：注册工程模式蓝图 ---
+    from app.routes.engineer import bp as engineer_bp
+    app.register_blueprint(engineer_bp, url_prefix='/engineer')
+    # ----------------------------
 
     # 将空间层级函数注册为模板全局函数
     app.jinja_env.globals['get_space_hierarchy'] = get_space_hierarchy
