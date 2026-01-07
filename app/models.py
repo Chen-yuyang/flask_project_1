@@ -58,17 +58,26 @@ class User(UserMixin, db.Model):
     def is_super_admin(self):
         """
         判断是否为超级管理员 (Root)
-        依据：邮箱是否匹配配置文件中的 FLASKY_ADMIN
-        权限：拥有系统最高权限，包括任免普通管理员
+        依据：邮箱是否包含在 FLASKY_ADMIN 配置列表中
         """
-        super_admin_email = current_app.config.get('FLASKY_ADMIN')
-        return super_admin_email and self.email == super_admin_email
+        admin_emails_config = current_app.config.get('FLASKY_ADMIN')
+
+        if not admin_emails_config:
+            return False
+
+        # 兼容处理：支持字符串（逗号分隔）或 列表格式
+        if isinstance(admin_emails_config, str):
+            # 将 "a@a.com, b@b.com" 分割并去空格 -> ['a@a.com', 'b@b.com']
+            admin_list = [email.strip() for email in admin_emails_config.split(',')]
+        else:
+            admin_list = admin_emails_config
+
+        return self.email in admin_list
 
     def is_admin(self):
         """
         判断是否为普通管理员 (Admin)
         依据：数据库角色为 'admin' 或 自身是超级管理员
-        权限：物品管理、空间管理、借还审批，但不可管理用户
         """
         return self.role == 'admin' or self.is_super_admin()
 

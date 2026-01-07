@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.urls import urlsplit  # 将url_parse改为urlsplit
@@ -48,45 +48,50 @@ def register():
 
     form = RegistrationForm()
     if form.validate_on_submit():
-        # 1. 定义管理员专属注册邮箱
-        ADMIN_REGISTER_EMAIL = "1055912570@qq.com"
+        # --- 修改开始：获取配置中的管理员列表 ---
+        admin_emails_config = current_app.config.get('FLASKY_ADMIN')
+        admin_list = []
 
-        # 2. 校验：该邮箱是否已注册（避免重复创建管理员）
-        existing_user = User.query.filter_by(
-            email=form.email.data
-        ).first()
+        # 解析配置，生成管理员邮箱列表
+        if admin_emails_config:
+            if isinstance(admin_emails_config, str):
+                admin_list = [e.strip() for e in admin_emails_config.split(',')]
+            else:
+                admin_list = admin_emails_config
+        # --- 修改结束 ---
+
+        # 2. 校验：该邮箱是否已注册
+        # (User.query 查重已包含在 form.validate_on_submit 里的逻辑中，但此处再次检查也无妨)
+        existing_user = User.query.filter_by(email=form.email.data).first()
         if existing_user:
-            flash(f'邮箱「{form.email.data}」已被注册，请更换其他邮箱', 'danger')
-            return redirect(url_for('auth.register'))
-
-        # 3. 校验：该邮箱是否已注册为管理员（双重保险）
-        existing_admin = User.query.filter_by(
-            email=ADMIN_REGISTER_EMAIL,
-            role='admin'
-        ).first()
-        if form.email.data == ADMIN_REGISTER_EMAIL and existing_admin:
-            flash(f'管理员邮箱「{ADMIN_REGISTER_EMAIL}」已注册，无需重复创建', 'warning')
+            flash(f'邮箱「{form.email.data}」已被注册，请直接登录', 'warning')
             return redirect(url_for('auth.login'))
 
-        # 4. 创建用户实例：根据邮箱动态设置角色
+        # 3. 创建用户实例
+        # 逻辑升级：只要注册邮箱在 admin_list 中，就自动赋予 admin 角色
+        # 注意：is_super_admin() 是动态判断的，这里设置 role='admin' 主要是为了方便数据库查看和前端徽章显示
+        is_config_admin = form.email.data in admin_list
+
         user = User(
             username=form.username.data,
             email=form.email.data,
-            # 核心逻辑：匹配指定邮箱则设为admin，否则默认user
-            role='admin' if form.email.data == ADMIN_REGISTER_EMAIL else 'user'
+            role='admin' if is_config_admin else 'user'
         )
 
-        # 5. 加密密码并提交数据库
+        # 加密密码并提交数据库
         user.set_password(form.password.data)
         db.session.add(user)
         try:
             db.session.commit()
-            # 6. 差异化提示信息
-            if user.is_admin():
-                flash(f'🎉 管理员账号注册成功！用户名：{user.username}', 'success')
+
+            # 4. 差异化提示
+            if is_config_admin:
+                flash(f'🎉 超级管理员账号注册成功！用户名：{user.username}', 'success')
             else:
                 flash(f'✅ 普通用户注册成功！用户名：{user.username}', 'success')
+
             return redirect(url_for('auth.login'))
+
         except Exception as e:
             db.session.rollback()
             flash(f'❌ 注册失败：{str(e)}', 'danger')
