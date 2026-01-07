@@ -8,7 +8,8 @@ from functools import wraps
 import qrcode
 
 
-# 登录且是管理员才能访问的装饰器（适配role字段）
+# 登录且是管理员(Admin)才能访问的装饰器
+# 适用于：物品管理、空间管理、借还操作
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -20,9 +21,22 @@ def admin_required(f):
     return decorated_function
 
 
+# 【新增】登录且是超级管理员(Super Admin)才能访问的装饰器
+# 适用于：用户权限管理、系统配置（未来）
+def super_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_super_admin():
+            flash('此区域仅限超级管理员访问（权限不足）', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 def is_admin():
-    """检查当前用户是否为管理员"""
-    return current_user.is_authenticated and current_user.is_admin
+    """检查当前用户是否为管理员（兼容普通管理和超管）"""
+    return current_user.is_authenticated and current_user.is_admin()
 
 
 def get_space_path(space):

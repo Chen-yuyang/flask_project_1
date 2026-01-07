@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-import pytz  # 确保已安装：pip install pytz
+import pytz
 from flask import current_app
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
-# 关键修改：使用 itsdangerous 2.2.0+ 推荐的 URLSafeTimedSerializer
+# 使用 itsdangerous 2.2.0+ 推荐的 URLSafeTimedSerializer
 from itsdangerous import URLSafeTimedSerializer as Serializer
 
 # 全局定义本地时区（东八区，北京时间）
@@ -16,7 +16,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
-    role = db.Column(db.String(10), default='user')
+    role = db.Column(db.String(10), default='user')  # 数据库角色：'user' 或 'admin'
 
     # 数据库存储UTC时间（字段名加前缀_utc，实际数据库列名仍为created_at）
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
@@ -53,8 +53,26 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    # --- 权限核心逻辑修改 ---
+
+    def is_super_admin(self):
+        """
+        判断是否为超级管理员 (Root)
+        依据：邮箱是否匹配配置文件中的 FLASKY_ADMIN
+        权限：拥有系统最高权限，包括任免普通管理员
+        """
+        super_admin_email = current_app.config.get('FLASKY_ADMIN')
+        return super_admin_email and self.email == super_admin_email
+
     def is_admin(self):
-        return self.role == 'admin'
+        """
+        判断是否为普通管理员 (Admin)
+        依据：数据库角色为 'admin' 或 自身是超级管理员
+        权限：物品管理、空间管理、借还审批，但不可管理用户
+        """
+        return self.role == 'admin' or self.is_super_admin()
+
+    # -----------------------
 
     # 关系
     spaces = db.relationship('Space', backref='creator', lazy='dynamic')
@@ -72,13 +90,10 @@ class Space(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('space.id'))
-    # 【修改1：允许创建者为空（用户删除后保留空间）】
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
-    # 数据库存储UTC时间
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
 
-    # 前端调用space.created_at时返回本地时间
     @property
     def created_at(self):
         if not self._utc_created_at:
@@ -102,7 +117,6 @@ class Space(db.Model):
             current = current.parent
         return level
 
-    # 关系
     children = db.relationship('Space', backref=db.backref('parent', remote_side=[id]), lazy='dynamic')
     items = db.relationship('Item', backref='space', lazy='dynamic', cascade="all, delete-orphan")
 
@@ -115,7 +129,7 @@ class Item(db.Model):
     status = db.Column(db.String(20), default='available')  # available, borrowed, reserved
     barcode_path = db.Column(db.String(255))
     space_id = db.Column(db.Integer, db.ForeignKey('space.id'), nullable=False)
-    # 【修改2：允许创建者为空（用户删除后保留物品）】
+    # 【允许创建者为空（用户删除后保留物品）】
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     # 数据库存储UTC时间
@@ -145,7 +159,7 @@ class Item(db.Model):
 class Record(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
-    # 【修改3：允许用户ID为空（用户删除后保留记录）】
+    # 【允许用户ID为空（用户删除后保留记录）】
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     space_path = db.Column(db.String(255))
     usage_location = db.Column(db.String(255))
@@ -188,14 +202,14 @@ class Record(db.Model):
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
-    # 【修改4：允许用户ID为空（用户删除后保留预约）】
+    # 【允许用户ID为空（用户删除后保留预约）】
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     # 数据库存储UTC时间
     _utc_reservation_start = db.Column('reservation_start', db.DateTime, nullable=False)
     _utc_reservation_end = db.Column('reservation_end', db.DateTime, nullable=False)
     _utc_created_at = db.Column('created_at', db.DateTime, default=datetime.utcnow)
-    # 新增状态：scheduled/active/expired/cancelled/used/conflicted
+    # scheduled/active/expired/cancelled/used/conflicted
     status = db.Column(db.String(20), default='scheduled')
     notes = db.Column(db.Text, nullable=True)
 
@@ -220,8 +234,6 @@ class Reservation(db.Model):
             return None
         utc_aware = pytz.utc.localize(self._utc_created_at)
         return utc_aware.astimezone(LOCAL_TIMEZONE)
-
-    # --- 优化后的状态判断逻辑 ---
 
     def is_scheduled(self):
         """判断是否处于“待开始”状态"""

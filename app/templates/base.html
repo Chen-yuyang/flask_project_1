@@ -46,6 +46,8 @@
 
         .space-toggle {
             color: #6c757d;
+            background: none;
+            border: none;
         }
         .space-toggle:hover {
             color: #0d6efd;
@@ -77,11 +79,16 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('reservations.all_reservations') }}">所有预约</a>
                     </li>
-                    {% if current_user.is_admin() %}
+
+                    <!-- 【修改】：仅超级管理员可见用户管理 -->
+                    {% if current_user.is_super_admin() %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin.user_management') }}">用户管理</a>
+                        <a class="nav-link text-warning" href="{{ url_for('admin.user_management') }}">
+                            <i class="bi bi-shield-lock-fill me-1"></i>用户管理
+                        </a>
                     </li>
                     {% endif %}
+
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('records.my_records') }}">我的记录</a>
                     </li>
@@ -110,9 +117,14 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle me-1"></i>{{ current_user.username }}
-                            {% if current_user.is_admin() %}
-                            <span class="badge bg-light text-dark ms-1" style="font-size: 0.7em;">管理员</span>
+
+                            <!-- 【修改】：区分显示 Root 和 Admin 身份 -->
+                            {% if current_user.is_super_admin() %}
+                            <span class="badge bg-danger text-white ms-1" style="font-size: 0.7em;">Root</span>
+                            {% elif current_user.is_admin() %}
+                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7em;">Admin</span>
                             {% endif %}
+
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                             <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}"><i class="bi bi-key me-2"></i>修改密码</a></li>
@@ -146,7 +158,6 @@
                             <div class="d-flex align-items-center px-2">
                                 <span class="p-0 me-2" style="width: 24px;"></span>
                                 <a class="nav-link px-2 flex-grow-1" href="{{ url_for('spaces.index') }}">
-                                    <!-- 已移除颜色类 text-primary -->
                                     <i class="bi bi-folder2 me-2"></i> 所有空间
                                 </a>
                             </div>
@@ -168,7 +179,6 @@
                                     </button>
                                     <a class="nav-link px-2 flex-grow-1"
                                        href="{{ url_for('spaces.view', id=item.space.id) }}">
-                                        <!-- 已移除颜色类 text-warning -->
                                         <i class="bi bi-folder me-2"></i> {{ item.space.name }}
                                     </a>
                                 </div>
@@ -184,7 +194,6 @@
                                     <span class="p-0 me-2" style="width: 24px;"></span>
                                     <a class="nav-link px-2 flex-grow-1"
                                        href="{{ url_for('spaces.view', id=item.space.id) }}">
-                                        <!-- 已移除颜色类 text-secondary -->
                                         <i class="bi bi-folder2-open me-2"></i> {{ item.space.name }}
                                     </a>
                                 </div>
