@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta
+from flask import current_app  # 新增：用于日志输出
 from app import db
 from app.models import Reservation, Record
-from app.email import send_email
-
-from app.email import send_overdue_reminder
+from app.email import send_email, send_overdue_reminder  # 合并导入，更简洁
 
 
-def update_reservation_status(app_context):
-    """更新预约状态的定时任务"""
-    with app_context:  # 传入应用上下文，确保能访问 db 和配置
+def update_reservation_status():
+    """更新预约状态的定时任务（去掉app_context参数，适配包装函数的上下文）"""
+    try:
+        current_app.logger.info("开始执行：更新预约状态任务")
         now_utc = datetime.utcnow()
 
         # ===================================================
@@ -101,20 +101,27 @@ def update_reservation_status(app_context):
                         template='reservations/email/reservation_reminder.html',
                         reservation=res
                     )
+        current_app.logger.info("预约状态更新任务执行完成")
+
+    except Exception as e:
+        # 捕获所有异常，记录日志并回滚数据库，避免任务崩溃
+        current_app.logger.error(f"更新预约状态任务执行失败: {str(e)}", exc_info=True)
+        db.session.rollback()
 
 
-def print_test_task(app_context):
-    """测试定时任务：每5秒打印一次"""
-    with app_context:
-        from flask import current_app
-        # 用 logger 打印（比 print 更规范，且会包含时间戳）
-        current_app.logger.info(f"===== 测试任务执行中 =====")
+def print_test_task():
+    """测试定时任务：每5秒打印一次（去掉app_context参数）"""
+    try:
+        current_app.logger.info("===== 测试任务执行中 =====")
         current_app.logger.info(f"测试任务：当前UTC时间 {datetime.utcnow()}")
+    except Exception as e:
+        current_app.logger.error(f"测试任务执行失败: {str(e)}", exc_info=True)
 
 
-def check_overdue_records(app_context):
-    """检查逾期记录并发送提醒"""
-    with app_context:
+def check_overdue_records():
+    """检查逾期记录并发送提醒（去掉app_context参数）"""
+    try:
+        current_app.logger.info("开始执行：检查逾期记录任务")
         overdue_records = Record.query.filter(
             Record.status == 'using',
             Record._utc_start_time < datetime.utcnow() - timedelta(days=7)
@@ -122,3 +129,8 @@ def check_overdue_records(app_context):
 
         for record in overdue_records:
             send_overdue_reminder(record)
+
+        current_app.logger.info(f"逾期记录检查完成，共找到 {len(overdue_records)} 条逾期记录")
+    except Exception as e:
+        current_app.logger.error(f"检查逾期记录任务执行失败: {str(e)}", exc_info=True)
+        db.session.rollback()

@@ -1,16 +1,21 @@
+import os
 import click
 from app import create_app, db
 from app.models import Record
 from app.email import send_overdue_reminder
 
-app = create_app()
+# 核心：读取 FLASK_CONFIG 环境变量，默认值为 'default'
+# FLASK_CONFIG 值对应 config.py 的 config 字典键：development/production/testing/docker
+config_name = os.environ.get('FLASK_CONFIG', 'default')
+app = create_app(config_name)
 
 
 @app.cli.command("init-db")
 def init_db():
     """初始化数据库"""
-    db.drop_all()
-    db.create_all()
+    with app.app_context():  # 新增：推送上下文（避免db操作无上下文）
+        db.drop_all()
+        db.create_all()
     click.echo('数据库已初始化')
 
 
@@ -30,5 +35,5 @@ def manual_check_overdue():
 
 
 if __name__ == '__main__':
-    # 移除原来的Timer启动逻辑（由APScheduler统一管理定时任务）
-    app.run(host="0.0.0.0", port=5000, debug=True)  # debug=True仅用于开发
+    # debug 由配置类自动决定（DevelopmentConfig=True，ProductionConfig=False）
+    app.run(host="0.0.0.0", port=5000, debug=app.config['FLASK_DEBUG'])
