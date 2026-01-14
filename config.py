@@ -47,7 +47,7 @@ class Config:
     # SSL_REDIRECT = False  手动处理
 
     # 【保留你的自定义配置】：会话与分页
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
+    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
     ITEMS_PER_PAGE = 10
     RECORDS_PER_PAGE = 10
     # BABEL_DEFAULT_TIMEZONE = 'Asia/Shanghai' # 未使用

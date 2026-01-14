@@ -49,6 +49,9 @@ venv
 # PyCharmIDE 配置文件
 .idea/
 
+# 日志
+logs/
+
 # 本项目特殊忽略
 文件结构.txt
 文件结构2.txt
