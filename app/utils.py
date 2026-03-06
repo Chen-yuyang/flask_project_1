@@ -66,9 +66,15 @@ def is_overdue(record, days=10):
     检查记录是否逾期
     默认超过10天未归还视为逾期
     """
+    import pytz
     if record.return_time or record.status != 'using':
         return False
-    return (datetime.utcnow() - record.start_time) > timedelta(days=days)
+    # 使用带时区的UTC时间进行比较
+    now_utc = datetime.utcnow().replace(tzinfo=pytz.utc)
+    start_time_utc = record._utc_start_time.replace(tzinfo=pytz.utc) if record._utc_start_time else None
+    if not start_time_utc:
+        return False
+    return (now_utc - start_time_utc) > timedelta(days=days)
 
 
 def format_datetime(dt, format='%Y-%m-%d %H:%M'):

@@ -18,7 +18,7 @@
                     <p class="mb-0"><strong>使用地点：</strong>{{ record.usage_location or '未填写' }}</p>
                     {% if record.is_overdue() %}
                     <div class="alert alert-danger mt-2 mb-0">
-                        ⚠️ 该物品已逾期 {{ (datetime.utcnow() - record.start_time).days - 10 }} 天，请及时归还
+                        ⚠️ 该物品已逾期 {{ overdue_days }} 天，请及时归还
                     </div>
                     {% endif %}
                 </div>

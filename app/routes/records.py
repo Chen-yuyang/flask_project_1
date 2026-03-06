@@ -220,6 +220,7 @@ def create(item_id):
 @login_required
 def return_item(record_id):
     """归还物品"""
+    import pytz
     record = Record.query.get_or_404(record_id)
 
     # 检查权限
@@ -231,6 +232,14 @@ def return_item(record_id):
     if record.status != 'using':
         flash('该物品已归还')
         return redirect(url_for('items.view', id=record.item_id))
+
+    # 计算逾期天数（使用带时区的UTC时间）
+    overdue_days = 0
+    if record.is_overdue():
+        now_utc = datetime.utcnow().replace(tzinfo=pytz.utc)
+        start_time_utc = record._utc_start_time.replace(tzinfo=pytz.utc) if record._utc_start_time else None
+        if start_time_utc:
+            overdue_days = (now_utc - start_time_utc).days - 10
 
     form = RecordReturnForm()
     if form.validate_on_submit() or request.method == 'POST':
@@ -264,7 +273,7 @@ def return_item(record_id):
 
         return redirect(url_for('items.view', id=record.item.id))
 
-    return render_template('records/return.html', form=form, record=record)
+    return render_template('records/return.html', form=form, record=record, overdue_days=overdue_days)
 
 
 @bp.route('/delete/<int:record_id>', methods=['POST'])
