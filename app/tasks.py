@@ -124,13 +124,18 @@ def check_overdue_records():
         current_app.logger.info("开始执行：检查逾期记录任务")
         overdue_records = Record.query.filter(
             Record.status == 'using',
-            Record._utc_start_time < datetime.utcnow() - timedelta(days=7)
+            Record._utc_start_time < datetime.utcnow() - timedelta(days=7),
+            Record.overdue_reminder_sent == False  # 只发送未提醒的记录
         ).all()
 
         for record in overdue_records:
             send_overdue_reminder(record)
+            record.overdue_reminder_sent = True  # 标记为已发送
+        
+        if overdue_records:
+            db.session.commit()  # 批量提交标记更新
 
-        current_app.logger.info(f"逾期记录检查完成，共找到 {len(overdue_records)} 条逾期记录")
+        current_app.logger.info(f"逾期记录检查完成，共发送 {len(overdue_records)} 封提醒邮件")
     except Exception as e:
         current_app.logger.error(f"检查逾期记录任务执行失败: {str(e)}", exc_info=True)
         db.session.rollback()

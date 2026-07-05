@@ -56,3 +56,7 @@ logs/
 文件结构.txt
 文件结构2.txt
 app/static/qrcodes/
+
+# Claude Code
+.claude/
+.codegraph/
